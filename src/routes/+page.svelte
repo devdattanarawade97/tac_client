@@ -2,6 +2,10 @@
 	import { onMount } from "svelte";
 	import { TonConnectUI } from "@tonconnect/ui";
 	import { TacSdk, Network, SenderFactory } from "tac-sdk";
+  import { PUBLIC_MY_EVM_ADDRESS , PUBLIC_JETTON_TOKEN_ADDRESS} from '$env/static/public'
+ //log all env 
+  console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
+  console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
 
 	let isConnected = false;
 	let tonConnect = null;
@@ -95,7 +99,7 @@
 
 			// Prepare the EVM proxy message
 			const evmProxyMsg = {
-				evmTargetAddress: "0xe3ECDc63B560B17139844c6b5ed56fb41Bd98be2",
+				evmTargetAddress: PUBLIC_MY_EVM_ADDRESS,
 				methodName: "",
 				encodedParameters: "0x",
 			};
@@ -108,7 +112,7 @@
 			// Prepare jetton details
 			const jetton = [
 				{
-					address: "EQBvmYl-CFo6B00UI-UP1mkwYCxm0zzad9cbuEpw413OUOAc",
+					address: PUBLIC_JETTON_TOKEN_ADDRESS,
 					amount: jettonAmount,
 				},
 			];
