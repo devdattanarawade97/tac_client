@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from "svelte";
 	import { TonConnectUI } from "@tonconnect/ui";
-	import { TacSdk, Network, SenderFactory } from "tac-sdk";
+	import { TacSdk, Network, SenderFactory, startTracking, OperationTracker  , } from "tac-sdk";
   import { PUBLIC_MY_EVM_ADDRESS , PUBLIC_JETTON_TOKEN_ADDRESS} from '$env/static/public'
  //log all env 
   console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
@@ -68,8 +68,11 @@
 		tonConnect.onStatusChange((wallet) => {
 			isConnected = !!wallet;
 			console.log("Wallet connection status:", isConnected);
+			//log the token balance for connected wallet
+			
 		});
 	});
+
 
 	const handleSendTransaction = async () => {
 		if (!isConnected) {
@@ -91,7 +94,8 @@
 				delay: 3,
 			});
 			console.log("tac_sdk :", tac_sdk);
-
+ 
+		
 			// Create sender using TonConnect
 			console.log("tonConnect :", tonConnect);
 			let sender = await SenderFactory.getSender({ tonConnect });
@@ -118,11 +122,13 @@
 			];
 
 			// Send cross-chain transaction
-			// const { sendTransactionResult } =
+			 const transactionLinker =
 			await tac_sdk.sendCrossChainTransaction(evmProxyMsg, sender, jetton);
-
-			// status = `Transaction successful: ${JSON.stringify(sendTransactionResult)}`;
-			// console.log(sendTransactionResult);
+		// Track transaction status
+		// const tracker =await startTracking(transactionLinker, Network.Testnet );
+		
+			 status = `Transaction successful! `;
+		
 		} catch (error) {
 			status = `Error during transaction: ${error.message}`;
 			console.error("Transaction error:", error);
