@@ -1,11 +1,21 @@
 <script>
 	import { onMount } from "svelte";
 	import { TonConnectUI } from "@tonconnect/ui";
-	import { TacSdk, Network, SenderFactory, startTracking, OperationTracker  , } from "tac-sdk";
-  import { PUBLIC_MY_EVM_ADDRESS , PUBLIC_JETTON_TOKEN_ADDRESS} from '$env/static/public'
- //log all env 
-  console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
-  console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
+	import {
+		TacSdk,
+		Network,
+		SenderFactory,
+		startTracking,
+		OperationTracker,
+		SimplifiedStatuses,
+	} from "tac-sdk";
+	import {
+		PUBLIC_MY_EVM_ADDRESS,
+		PUBLIC_JETTON_TOKEN_ADDRESS,
+	} from "$env/static/public";
+	//log all env
+	console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
+	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
 
 	let isConnected = false;
 	let tonConnect = null;
@@ -69,10 +79,8 @@
 			isConnected = !!wallet;
 			console.log("Wallet connection status:", isConnected);
 			//log the token balance for connected wallet
-			
 		});
 	});
-
 
 	const handleSendTransaction = async () => {
 		if (!isConnected) {
@@ -94,8 +102,7 @@
 				delay: 3,
 			});
 			console.log("tac_sdk :", tac_sdk);
- 
-		
+
 			// Create sender using TonConnect
 			console.log("tonConnect :", tonConnect);
 			let sender = await SenderFactory.getSender({ tonConnect });
@@ -122,18 +129,40 @@
 			];
 
 			// Send cross-chain transaction
-			 const transactionLinker =
-			await tac_sdk.sendCrossChainTransaction(evmProxyMsg, sender, jetton);
-		// Track transaction status
-		// const tracker =await startTracking(transactionLinker, Network.Testnet );
-		
-			 status = `Transaction successful! `;
-		
+			const transactionLinker = await tac_sdk.sendCrossChainTransaction(
+				evmProxyMsg,
+				sender,
+				jetton,
+			);
+			// Track transaction status
+			const tracker = await startTracking(transactionLinker, Network.Testnet);
+			//log tracker
+			console.log("tracker :", tracker);
+			// trackTransaction(tracker);
+			status = `Transaction successful! `;
 		} catch (error) {
 			status = `Error during transaction: ${error.message}`;
 			console.error("Transaction error:", error);
 		}
 	};
+
+	async function trackTransaction(operationId) {
+		const tracker = new OperationTracker(Network.Testnet);
+
+		try {
+			// Detailed tracking
+			// const operationId = await tracker.getOperationId(transactionLinker);
+			if (operationId) {
+				const status = await tracker.getOperationStatus(operationId);
+				console.log("Detailed status:", status);
+			} else {
+				console.log("Waiting for validators to receive messages...");
+				// Implement retry logic here
+			}
+		} catch (error) {
+			console.error("Error during tracking:", error);
+		}
+	}
 </script>
 
 <main>
