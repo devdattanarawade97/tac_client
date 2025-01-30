@@ -8,6 +8,7 @@ Everything you need to build a Svelte project, powered by [`sv`](https://github.
 
 ---
 
+
 ## **Creating a Project**
 
 If you're seeing this, you've probably already created a project. Congrats! If not, follow these steps:
@@ -141,5 +142,90 @@ Here are some other useful scripts you might find in your `package.json`:
 - Explore the [Svelte GitHub repository](https://github.com/sveltejs/svelte) for updates and issues.
 
 ---
+
+# TAC Wallet
+
+## Overview
+TAC Wallet is a Svelte-based decentralized application (dApp) that integrates with the TON blockchain. It allows users to connect their TON wallets, specify a Jetton token amount, and send cross-chain transactions to an EVM-compatible address.
+
+## Features
+- Connect with TON-compatible wallets (TON Wallet, Tonkeeper, Tonhub)
+- Fetch wallet connection status
+- Specify Jetton token amount
+- Send cross-chain transactions
+- Track transaction status
+
+## Prerequisites
+- Node.js (>=16.x)
+- npm or yarn
+- A TON-compatible wallet (e.g., TON Wallet, Tonkeeper, Tonhub)
+- TAC SDK and TON Connect dependencies
+
+## Installation
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/your-repo/tac-wallet.git
+   cd tac-wallet
+   ```
+2. Install dependencies:
+   ```sh
+   npm install
+   ```
+3. Configure environment variables:
+   - Create a `.env` file in the project root.
+   - Add the following:
+     ```sh
+     PUBLIC_MY_EVM_ADDRESS=<your-evm-address>
+     PUBLIC_JETTON_TOKEN_ADDRESS=<your-jetton-token-address>
+     ```
+4. Start the development server:
+   ```sh
+   npm run dev
+   ```
+
+## Usage
+### Wallet Connection
+- The wallet connection button is rendered within the `#ton-connect` container.
+- Users can connect their wallet and the app will fetch the connection status.
+
+### Sending Transactions
+1. Enter a valid Jetton token amount.
+2. Click the **Send Transaction** button.
+3. The app will send a cross-chain transaction and display the status.
+
+### Transaction Tracking
+- The app logs the transaction status and handles error messages for debugging.
+
+## Project Structure
+```
+├── src
+│   ├── App.svelte        # Main application logic
+│   ├── components
+│   ├── assets
+│   ├── styles
+│   ├── env               # Environment variables
+│   ├── main.js           # Application entry point
+│
+├── public
+│   ├── tonconnect-manifest.json  # TON Connect configuration
+│
+├── .env                   # Environment variables
+├── package.json           # Dependencies and scripts
+├── README.md              # Documentation
+```
+
+## Dependencies
+- [Svelte](https://svelte.dev/)
+- [TON Connect UI](https://github.com/ton-connect/sdk)
+- [Tac SDK](https://github.com/tact-lang/tact)
+- [Vite](https://vitejs.dev/) (for development)
+
+## License
+This project is licensed under the MIT License.
+
+## Contact
+For any issues, please open an issue on the [GitHub repository](https://github.com/your-repo/tac-wallet/issues).
+
+
 
 Enjoy building your Svelte app! 🚀
