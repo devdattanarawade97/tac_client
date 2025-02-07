@@ -18,6 +18,9 @@
 	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
 
 	let isConnected = false;
+	/**
+	 * @type {TonConnectUI | null}
+	 */
 	let tonConnect = null;
 
 	let jettonAmount = 1;
@@ -105,7 +108,8 @@
 
 			// Create sender using TonConnect
 			console.log("tonConnect :", tonConnect);
-			let sender = await SenderFactory.getSender({ tonConnect });
+			// @ts-ignore
+			let sender = await SenderFactory.getSender({ tonConnect});
 			console.log("sender :", sender);
 
 			// Prepare the EVM proxy message
@@ -141,11 +145,15 @@
 			// trackTransaction(tracker);
 			status = `Transaction successful! `;
 		} catch (error) {
+			// @ts-ignore
 			status = `Error during transaction: ${error.message}`;
 			console.error("Transaction error:", error);
 		}
 	};
 
+	/**
+	 * @param {string} operationId
+	 */
 	async function trackTransaction(operationId) {
 		const tracker = new OperationTracker(Network.Testnet);
 
