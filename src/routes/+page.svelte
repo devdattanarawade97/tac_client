@@ -17,6 +17,19 @@
 	console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
 	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
 
+	let isMetaMaskConnected = false;
+	/**
+	 * @type {{ request: (arg0: { method: string; params?: never[]; }) => any; } | null}
+	 */
+	let metaMaskWallet = null;
+	/**
+	 * @type {null}
+	 */
+	let metaMaskAccount = null;
+	/**
+	 * @type {string | null}
+	 */
+	let metaMaskNetwork = null;
 	let isConnected = false;
 	/**
 	 * @type {TonConnectUI | null}
@@ -83,6 +96,16 @@
 			console.log("Wallet connection status:", isConnected);
 			//log the token balance for connected wallet
 		});
+
+		// Initialize MetaMask
+		// @ts-ignore
+		if (typeof window.ethereum !== "undefined") {
+			// @ts-ignore
+			metaMaskWallet = window.ethereum;
+			console.log("MetaMask wallet:", metaMaskWallet);
+		} else {
+			console.log("MetaMask not installed");
+		}
 	});
 
 	const handleSendTransaction = async () => {
@@ -109,9 +132,12 @@
 			// Create sender using TonConnect
 			console.log("tonConnect :", tonConnect);
 			// @ts-ignore
-			let sender = await SenderFactory.getSender({ tonConnect});
+			let sender = await SenderFactory.getSender({ tonConnect });
 			console.log("sender :", sender);
-
+            
+			//log public my evm address and metaMaskAccount
+			console.log("PUBLIC_MY_EVM_ADDRESS :", PUBLIC_MY_EVM_ADDRESS);
+			console.log("metaMaskAccount :", metaMaskAccount);
 			// Prepare the EVM proxy message
 			const evmProxyMsg = {
 				evmTargetAddress: PUBLIC_MY_EVM_ADDRESS,
@@ -171,6 +197,64 @@
 			console.error("Error during tracking:", error);
 		}
 	}
+
+	const handleMetaMaskConnect = async () => {
+		if (!metaMaskWallet) return;
+
+		try {
+			const accounts = await metaMaskWallet.request({
+				method: "eth_requestAccounts",
+			});
+			isMetaMaskConnected = true;
+			metaMaskAccount = accounts[0];
+			console.log("MetaMask account:", metaMaskAccount);
+
+			// Get the current network
+			const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
+			//log network id
+			console.log("networkId :", networkId);
+			const networkName = getNetworkName(networkId);
+			metaMaskNetwork = networkName;
+			console.log("MetaMask network:", metaMaskNetwork);
+		} catch (error) {
+			console.error("Error connecting to MetaMask:", error);
+		}
+	};
+
+	/**
+	 * @param {any} networkId
+	 */
+	function getNetworkName(networkId) {
+		switch (networkId) {
+			case "0x956":
+				return "TacTurin";
+			case "0x3":
+				return "Ropsten";
+			case "0x4":
+				return "Rinkeby";
+			case "0x5":
+				return "Goerli";
+			case "0x2a":
+				return "Kovan";
+			default:
+				return "Unknown";
+		}
+	}
+
+	const handleMetaMaskDisconnect = async () => {
+		if (!metaMaskWallet) return;
+
+		try {
+			await metaMaskWallet.request({
+				method: "eth_requestAccounts",
+				params: [],
+			});
+			isMetaMaskConnected = false;
+			console.log("MetaMask disconnected");
+		} catch (error) {
+			console.error("Error disconnecting from MetaMask:", error);
+		}
+	};
 </script>
 
 <main>
@@ -182,8 +266,28 @@
 		<div id="ton-connect" class="ton-connect-container"></div>
 
 		{#if isConnected}
-			<div class="status">Your wallet is successfully connected!</div>
+			<div class="status">Your Ton wallet is successfully connected!</div>
 		{/if}
+
+		<!-- MetaMask Section -->
+
+		<button on:click={handleMetaMaskConnect} class="metamask-button">
+			{#if isMetaMaskConnected}
+				Disconnect MetaMask
+			{:else}
+				Connect MetaMask
+			{/if}
+		</button>
+
+		{#if isMetaMaskConnected}
+			<div class="status">
+				Connected to MetaMask:
+				<span class="account">{metaMaskAccount}</span>
+				on
+				<span class="network">{metaMaskNetwork}</span>
+			</div>
+		{/if}
+		<!-- MetaMask button -->
 	</div>
 
 	<!-- Transaction Section -->
@@ -328,5 +432,23 @@
 		text-align: left;
 		white-space: pre-wrap;
 		word-wrap: break-word;
+	}
+	.metamask-button {
+		width: 50%;
+		margin-top: 10px;
+		padding: 12px 24px;
+		font-size: 16px;
+		font-weight: 600;
+		color: #fff;
+		background-color: #007bff;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: background-color 0.3s ease;
+	}
+
+	.metamask-button:hover {
+		background-color: #0056b3;
+		transform: translateY(-2px);
 	}
 </style>
