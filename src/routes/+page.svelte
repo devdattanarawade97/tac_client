@@ -12,11 +12,20 @@
 	import {
 		PUBLIC_MY_EVM_ADDRESS,
 		PUBLIC_JETTON_TOKEN_ADDRESS,
+		PUBLIC_PROXY_ADDRESS,
+		PUBLIC_WTON_TOKEN_ADDRESS,
+		PUBLIC_TVM_TOKEN_ADDRESS,
 	} from "$env/static/public";
+
+	import abijson from "../abi.json";
+	console.log("json : ", abijson);
+	import { ethers } from "ethers";
 	//log all env
 	console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
 	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
-
+	console.log("PUBLIC_PROXY_ADDRESS :", PUBLIC_PROXY_ADDRESS);
+	console.log("PUBLIC_WTON_TOKEN_ADDRESS :", PUBLIC_WTON_TOKEN_ADDRESS);
+	console.log("PUBLIC TVM TOKEN ADDRESS : ", PUBLIC_TVM_TOKEN_ADDRESS);
 	let isMetaMaskConnected = false;
 	/**
 	 * @type {{ request: (arg0: { method: string; params?: never[]; }) => any; } | null}
@@ -134,24 +143,59 @@
 			// @ts-ignore
 			let sender = await SenderFactory.getSender({ tonConnect });
 			console.log("sender :", sender);
-            
+
 			//log public my evm address and metaMaskAccount
 			console.log("PUBLIC_MY_EVM_ADDRESS :", PUBLIC_MY_EVM_ADDRESS);
 			console.log("metaMaskAccount :", metaMaskAccount);
-			// Prepare the EVM proxy message
-			const evmProxyMsg = {
-				evmTargetAddress: PUBLIC_MY_EVM_ADDRESS,
-				methodName: "",
-				encodedParameters: "0x",
+			// // Prepare the EVM proxy message
+			// const evmProxyMsg = {
+			// 	evmTargetAddress: PUBLIC_PROXY_ADDRESS,
+			// 	methodName: "",
+			// 	encodedParameters: "0x",
+			// };
+			// Create EVM payload
+
+			// define jetton token info
+			const jettonInfo = {
+				tvmAddress: PUBLIC_JETTON_TOKEN_ADDRESS, // jetton minter contract address
+				name: "JettonBTC",
+				symbol: "JBTC",
+				decimals: 9n,
+				description: "TON description",
+				image: "https://ton.com/image.png",
 			};
+
+			// how much jetton to mint
+			const tokenMintInfo = {
+				info: jettonInfo,
+				mintAmount: 10n ** 9n,
+			};
+
+			// define target contract address
+			const target = PUBLIC_PROXY_ADDRESS;
+			// define method name
+			const methodName = "mint(bytes,bytes)";
+			// encode arguments of proxy contract
+			const encodedArguments = ethers.AbiCoder.defaultAbiCoder().encode(
+				["tuple(address,uint256)"],
+				[[target, tokenMintInfo.mintAmount]],
+			);
+
+			// Prepare evmProxyMsg
+			const evmProxyMsg = {
+				evmTargetAddress: PUBLIC_PROXY_ADDRESS,
+				methodName: methodName,
+				encodedArguments,
+			};
+
+			console.log("Encoded Parameters:", encodedArguments);
 
 			console.log("EVM proxy message:", evmProxyMsg);
 			//log jetton amount
 			console.log("Jetton amount:", jettonAmount);
-			//log sender
 
 			// Prepare jetton details
-			const jetton = [
+			const assets = [
 				{
 					address: PUBLIC_JETTON_TOKEN_ADDRESS,
 					amount: jettonAmount,
@@ -162,12 +206,13 @@
 			const transactionLinker = await tac_sdk.sendCrossChainTransaction(
 				evmProxyMsg,
 				sender,
-				jetton,
+				assets,
 			);
 			// Track transaction status
 			const tracker = await startTracking(transactionLinker, Network.Testnet);
 			//log tracker
 			console.log("tracker :", tracker);
+			tac_sdk.closeConnections()
 			// trackTransaction(tracker);
 			status = `Transaction successful! `;
 		} catch (error) {
@@ -213,46 +258,8 @@
 			const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
 			//log network id
 			console.log("networkId :", networkId);
-			const networkName = getNetworkName(networkId);
-			metaMaskNetwork = networkName;
-			console.log("MetaMask network:", metaMaskNetwork);
 		} catch (error) {
 			console.error("Error connecting to MetaMask:", error);
-		}
-	};
-
-	/**
-	 * @param {any} networkId
-	 */
-	function getNetworkName(networkId) {
-		switch (networkId) {
-			case "0x956":
-				return "TacTurin";
-			case "0x3":
-				return "Ropsten";
-			case "0x4":
-				return "Rinkeby";
-			case "0x5":
-				return "Goerli";
-			case "0x2a":
-				return "Kovan";
-			default:
-				return "Unknown";
-		}
-	}
-
-	const handleMetaMaskDisconnect = async () => {
-		if (!metaMaskWallet) return;
-
-		try {
-			await metaMaskWallet.request({
-				method: "eth_requestAccounts",
-				params: [],
-			});
-			isMetaMaskConnected = false;
-			console.log("MetaMask disconnected");
-		} catch (error) {
-			console.error("Error disconnecting from MetaMask:", error);
 		}
 	};
 </script>
