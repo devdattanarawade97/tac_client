@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from "svelte";
 	import { TonConnectUI } from "@tonconnect/ui";
+	import { ethers } from "ethers";
 	import {
 		TacSdk,
 		Network,
@@ -12,20 +13,19 @@
 	import {
 		PUBLIC_MY_EVM_ADDRESS,
 		PUBLIC_JETTON_TOKEN_ADDRESS,
-		PUBLIC_PROXY_ADDRESS,
 		PUBLIC_WTON_TOKEN_ADDRESS,
-		PUBLIC_TVM_TOKEN_ADDRESS,
+		PUBLIC_TREASURE_SWAP_ADDRESS,
+		PUBLIC_TREASURE_SWAP_PROXY,
+		PUBLIC_TON_ADDRESS,
 	} from "$env/static/public";
 
 	import abijson from "../abi.json";
 	console.log("json : ", abijson);
-	import { ethers } from "ethers";
+	
 	//log all env
 	console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
 	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
-	console.log("PUBLIC_PROXY_ADDRESS :", PUBLIC_PROXY_ADDRESS);
 	console.log("PUBLIC_WTON_TOKEN_ADDRESS :", PUBLIC_WTON_TOKEN_ADDRESS);
-	console.log("PUBLIC TVM TOKEN ADDRESS : ", PUBLIC_TVM_TOKEN_ADDRESS);
 	let isMetaMaskConnected = false;
 	/**
 	 * @type {{ request: (arg0: { method: string; params?: never[]; }) => any; } | null}
@@ -35,6 +35,7 @@
 	 * @type {null}
 	 */
 	let metaMaskAccount = null;
+	let okXMetamaskWalletAddress="0x5286bf578ef4bf407c76e0e068ff17b9069e2a22";
 	/**
 	 * @type {string | null}
 	 */
@@ -145,8 +146,7 @@
 			console.log("sender :", sender);
 
 			//log public my evm address and metaMaskAccount
-			console.log("PUBLIC_MY_EVM_ADDRESS :", PUBLIC_MY_EVM_ADDRESS);
-			console.log("metaMaskAccount :", metaMaskAccount);
+			console.log("metaMaskAccount :", okXMetamaskWalletAddress);
 			// // Prepare the EVM proxy message
 			// const evmProxyMsg = {
 			// 	evmTargetAddress: PUBLIC_PROXY_ADDRESS,
@@ -154,10 +154,23 @@
 			// 	encodedParameters: "0x",
 			// };
 			// Create EVM payload
+			// Define TON and Jetton token info (unchanged)
+			const wTonInfo = {
+				tvmAddress: PUBLIC_WTON_TOKEN_ADDRESS,
+				name: "Wrapped TON",
+				symbol: "WTON",
+				decimals: 9n,
+				description: "WTON description",
+				image: "abc",
+			};
 
-			// define jetton token info
+			const tokenMintInfoForWTON = {
+				info: wTonInfo,
+				mintAmount: 10n ** 9n,
+			};
+
 			const jettonInfo = {
-				tvmAddress: PUBLIC_JETTON_TOKEN_ADDRESS, // jetton minter contract address
+				tvmAddress: PUBLIC_JETTON_TOKEN_ADDRESS,
 				name: "JettonBTC",
 				symbol: "JBTC",
 				decimals: 9n,
@@ -165,42 +178,70 @@
 				image: "https://ton.com/image.png",
 			};
 
-			// how much jetton to mint
-			const tokenMintInfo = {
+			const tokenMintInfoForJetton = {
 				info: jettonInfo,
 				mintAmount: 10n ** 9n,
 			};
 
-			// define target contract address
-			const target = PUBLIC_PROXY_ADDRESS;
-			// define method name
+			// Encoding with single parameter
+			const to = okXMetamaskWalletAddress;
+			console.log('to address : ', to)
+			const wTONamt = tokenMintInfoForWTON.mintAmount;
 			const methodName = "mint(bytes,bytes)";
-			// encode arguments of proxy contract
-			const encodedArguments = ethers.AbiCoder.defaultAbiCoder().encode(
-				["tuple(address,uint256)"],
-				[[target, tokenMintInfo.mintAmount]],
-			);
 
-			// Prepare evmProxyMsg
+			const abi = ethers.AbiCoder.defaultAbiCoder();
+
+			// Encode everything into a single parameter
+			// Including both tacHeader and arguments as a tuple
+			// Encode TAC header separately
+					const tacHeader = abi.encode(
+			["tuple(uint64,address)"], // TacHeaderV1 (queryId and tvmCaller)
+			[[0n, to]]
+		);
+
+		// Encode MintArguments correctly as bytes
+		const mintArguments = abi.encode(
+			["tuple(address,uint256)"], // MintArguments struct (to, wTONamt)
+			[[to, wTONamt]]
+		);
+
+		console.log('tac header bytes : ', tacHeader);
+		console.log('arguments bytes : ', mintArguments);
+
+		// Correctly encode parameters
+		const encodedParameters = abi.encode(
+			["tuple(bytes, bytes)"],
+			[
+				[tacHeader, // TacHeaderV1 (queryId, tvmCaller)
+				mintArguments// MintArguments (to, wTONamt)
+				]
+			]
+		);
+      
+		// const encodedParameters=ethers.AbiCoder.defaultAbiCoder().encode(
+        //   ["tuple(address,uint256)"],
+        //   [[to,wTONamt]]
+        // )
+		console.log('encodedParameters: ', encodedParameters);
+
+       
+			// Prepare evmProxyMsg with single encoded parameter
 			const evmProxyMsg = {
-				evmTargetAddress: PUBLIC_PROXY_ADDRESS,
+				evmTargetAddress: PUBLIC_TREASURE_SWAP_PROXY,
 				methodName: methodName,
-				encodedArguments,
+				encodedParameters,  // Single encoded parameter containing both header and arguments
 			};
 
-			console.log("Encoded Parameters:", encodedArguments);
-
+			console.log("Encoded Parameters:", encodedParameters);
 			console.log("EVM proxy message:", evmProxyMsg);
-			//log jetton amount
-			console.log("Jetton amount:", jettonAmount);
+
+
 
 			// Prepare jetton details
-			const assets = [
-				{
-					address: PUBLIC_JETTON_TOKEN_ADDRESS,
-					amount: jettonAmount,
-				},
-			];
+			const assets = [{
+				address: PUBLIC_JETTON_TOKEN_ADDRESS,
+				amount: jettonAmount,
+			}];
 
 			// Send cross-chain transaction
 			const transactionLinker = await tac_sdk.sendCrossChainTransaction(
@@ -208,11 +249,24 @@
 				sender,
 				assets,
 			);
-			// Track transaction status
+			// const network=Network.Testnet
+			// const tracker = new OperationTracker(network);
+
+			// const operationId = await tracker.getOperationId(transactionLinker);
+			// console.log('Operation ID:', operationId);
+            //  const opstatus=await tracker.getOperationStatus(operationId)
+			//  console.log('status : ' , opstatus);
+			//  const simplifiedStatus = await tracker.getSimplifiedOperationStatus(transactionLinker);
+			// 	console.log('Simplified Status:', simplifiedStatus);
+
+			// // Track transaction status
 			const tracker = await startTracking(transactionLinker, Network.Testnet);
-			//log tracker
-			console.log("tracker :", tracker);
-			tac_sdk.closeConnections()
+
+			// //log tracker
+			 console.log("tracker :", tracker);
+			 
+	
+			tac_sdk.closeConnections();
 			// trackTransaction(tracker);
 			status = `Transaction successful! `;
 		} catch (error) {
@@ -222,6 +276,7 @@
 		}
 	};
 
+	
 	/**
 	 * @param {string} operationId
 	 */
