@@ -31,7 +31,7 @@
 	/**
 	 * @type {TacSdk}
 	 */
-	let tac_sdk ;
+	let tac_sdk;
 	/**
 	 * @type {import("tac-sdk").SenderAbstraction}
 	 */
@@ -124,7 +124,6 @@
 			console.log("Wallet connection status:", isConnected);
 			//log the token balance for connected wallet
 
-		
 			// Initialize TacSdk
 			tac_sdk = await TacSdk.create({
 				network: Network.Testnet,
@@ -135,13 +134,16 @@
 			sender = await SenderFactory.getSender({ tonConnect });
 			console.log("sender :", sender);
 			userTonWalletAddress = await sender.getSenderAddress();
-			userJettonBalance=await tac_sdk.getUserJettonBalance(userTonWalletAddress, PUBLIC_JETTON_TOKEN_ADDRESS)
-			console.log('user ton wallet address : ', userTonWalletAddress);
-			console.log('user ton jetton balance : ', userJettonBalance);
-			
+			const balance = await tac_sdk.getUserJettonBalance(
+				userTonWalletAddress,
+				PUBLIC_JETTON_TOKEN_ADDRESS,
+			);
+		    userJettonBalance=BigInt(Number(balance)/Math.pow(10 , 9))
+
+			console.log("user ton wallet address : ", userTonWalletAddress);
+			console.log("user ton jetton balance : ", userJettonBalance);
 		});
 
-	
 		// @ts-ignore
 		if (typeof window.ethereum !== "undefined") {
 			// @ts-ignore
@@ -166,7 +168,6 @@
 
 		try {
 			status = "Sending transaction...";
-
 
 			//log public my evm address and metaMaskAccount
 			// // Prepare the EVM proxy message
@@ -300,7 +301,6 @@
 		try {
 			status = "Sending transaction...";
 
-
 			const wTonInfo = {
 				tvmAddress: PUBLIC_WTON_TOKEN_ADDRESS,
 				name: "Wrapped TON",
@@ -426,9 +426,11 @@
 			const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
 			//log network id
 			console.log("networkId :", networkId);
-			bmbtcBalance = await getTokenBalance(
-				metaMaskAccount,
-				"0xE7731e1D0925e1a16459d893156598d18415178a",
+			bmbtcBalance = Number(
+				await getTokenBalance(
+					metaMaskAccount,
+					"0xE7731e1D0925e1a16459d893156598d18415178a",
+				),
 			);
 		} catch (error) {
 			console.error("Error connecting to MetaMask:", error);
@@ -437,8 +439,7 @@
 
 	// @ts-ignore
 	const getTokenBalance = async (walletAddress, tokenAddress) => {
-		if (!metaMaskWallet) return;
-
+		let formattedBalance = 0;
 		// ERC-20 balanceOf function ABI
 		const tokenABI = bmbtcABI;
 		console.log("bm btc token abi : ", tokenABI);
@@ -447,16 +448,23 @@
 			console.log("token address : ", tokenAddress);
 			// Use ethers.js to interact with the contract
 			// @ts-ignore
-			const provider = new ethers.providers.Web3Provider(window.ethereum);
-			const contract = new ethers.Contract(tokenAddress, tokenABI, provider);
 
-			const balance = await contract.balanceOf(walletAddress);
-			const decimals = await contract.decimals();
+			if (typeof window.ethereum !== "undefined") {
+				// @ts-ignore
+				const provider = new ethers.BrowserProvider(window.ethereum);
+				const contract = new ethers.Contract(tokenAddress, tokenABI, provider);
 
-			// Convert balance based on token decimals
-			// @ts-ignore
-			const formattedBalance = ethers.utils.formatUnits(balance, decimals);
-			console.log(`Token (${tokenAddress}) Balance:`, formattedBalance);
+				const balance = await contract.balanceOf(walletAddress);
+				const decimals = await contract.decimals();
+
+				// Convert balance based on token decimals
+				// @ts-ignore
+				formattedBalance = ethers.formatUnits(balance, decimals);
+				console.log(`Token (${tokenAddress}) Balance:`, balance);
+			} else {
+				console.error("MetaMask is not installed!");
+			}
+
 			return formattedBalance;
 		} catch (error) {
 			console.error("Error fetching token balance:", error);
@@ -477,9 +485,6 @@
 						<div class="ton-connect-container" id="ton-connect"></div>
 						{#if isConnected}
 							<span class="status connected">TON Connected</span>
-							{#if userJettonBalance}
-                              <span class="balance">{Number(userJettonBalance).toFixed(2)} Jettons</span>
-							{/if}
 						{/if}
 					</div>
 					<div class="wallet-item">
@@ -525,7 +530,18 @@
 					<div class="tab-content">
 						{#if activeTab === "mint"}
 							<div class="input-group">
-								<label for="jettonAmount">Jetton Amount</label>
+								{#if userJettonBalance}
+									<div class="balance">
+										<label for="bmbtcAmount" class="bmbtcAmount"
+											>Jettons Amount
+										</label>
+
+										<div class="bmbtcbalance">
+											balance : {Number(userJettonBalance).toFixed(2)} Jettons
+										</div>
+									</div>
+								{/if}
+
 								<div class="input-wrapper">
 									<input
 										id="jettonAmount"
@@ -538,12 +554,23 @@
 									<span class="token">JETTON</span>
 								</div>
 							</div>
+
 							<button on:click={MintTokens} class="action-button mint"
 								>Mint BMBTC</button
 							>
 						{:else}
 							<div class="input-group">
-								<label for="bmbtcAmount">BMBTC Amount</label>
+								{#if bmbtcBalance}
+									<div class="balance">
+										<label for="bmbtcAmount" class="bmbtcAmount"
+											>BMBTC Amount
+										</label>
+										<div class="bmbtcbalance">
+											balance : {Number(bmbtcBalance).toFixed(2)} BMBTC
+										</div>
+									</div>
+								{/if}
+
 								<div class="input-wrapper">
 									<input
 										id="bmbtcAmount"
@@ -616,15 +643,11 @@
 		display: flex;
 		justify-content: space-between;
 		gap: 15px;
-		
 	}
 
 	.wallet-item {
-	
 		flex: 1;
 		text-align: center;
-		
-	
 	}
 
 	.ton-connect-container {
@@ -794,9 +817,14 @@
 		word-wrap: break-word;
 	}
 
-	.balance{
+	.balance {
 		color: #27ae60;
 		font-size: small;
 		font-weight: bold;
+		display: flex;
+		flex-direction: row;
+	}
+	.bmbtcbalance {
+		margin-left: auto; /* Pushes it to the right */
 	}
 </style>
