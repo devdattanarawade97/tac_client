@@ -1,10 +1,10 @@
 <script>
 	let activeTab = "mint"; // Default tab
-	import bmbtcABI from '../bmbtc_abi.json'
+	import bmbtcABI from "../bmbtc_abi.json";
 	// Assuming other variables (isConnected, isMetaMaskConnected, etc.) are defined in your script
 	import { onMount } from "svelte";
 	import { TonConnectUI } from "@tonconnect/ui";
-import * as ethers from "ethers"
+	import * as ethers from "ethers";
 	import {
 		TacSdk,
 		Network,
@@ -28,6 +28,19 @@ import * as ethers from "ethers"
 	console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
 	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
 	console.log("PUBLIC_WTON_TOKEN_ADDRESS :", PUBLIC_WTON_TOKEN_ADDRESS);
+	/**
+	 * @type {TacSdk}
+	 */
+	let tac_sdk ;
+	/**
+	 * @type {import("tac-sdk").SenderAbstraction}
+	 */
+	let sender;
+	/**
+	 * @type {bigint}
+	 */
+	let userJettonBalance;
+	let userTonWalletAddress;
 	let isMetaMaskConnected = false;
 	/**
 	 * @type {{ request: (arg0: { method: string; params?: never[]; }) => any; } | null}
@@ -52,7 +65,7 @@ import * as ethers from "ethers"
 	let jettonAmount = 1;
 	let bmBTCAmount = 1;
 	let status = "";
-	let bmbtcBalance=0
+	let bmbtcBalance = 0;
 
 	// Initialize TonConnect
 	onMount(async () => {
@@ -106,13 +119,29 @@ import * as ethers from "ethers"
 			},
 		});
 
-		tonConnect.onStatusChange((wallet) => {
+		tonConnect.onStatusChange(async (wallet) => {
 			isConnected = !!wallet;
 			console.log("Wallet connection status:", isConnected);
 			//log the token balance for connected wallet
+
+		
+			// Initialize TacSdk
+			tac_sdk = await TacSdk.create({
+				network: Network.Testnet,
+				delay: 3,
+			});
+
+			// @ts-ignore
+			sender = await SenderFactory.getSender({ tonConnect });
+			console.log("sender :", sender);
+			userTonWalletAddress = await sender.getSenderAddress();
+			userJettonBalance=await tac_sdk.getUserJettonBalance(userTonWalletAddress, PUBLIC_JETTON_TOKEN_ADDRESS)
+			console.log('user ton wallet address : ', userTonWalletAddress);
+			console.log('user ton jetton balance : ', userJettonBalance);
+			
 		});
 
-		// Initialize MetaMask
+	
 		// @ts-ignore
 		if (typeof window.ethereum !== "undefined") {
 			// @ts-ignore
@@ -123,6 +152,7 @@ import * as ethers from "ethers"
 		}
 	});
 
+	//mint tokens
 	const MintTokens = async () => {
 		if (!isConnected) {
 			status = "Wallet not connected.";
@@ -137,18 +167,6 @@ import * as ethers from "ethers"
 		try {
 			status = "Sending transaction...";
 
-			// Initialize TacSdk
-			let tac_sdk = await TacSdk.create({
-				network: Network.Testnet,
-				delay: 3,
-			});
-			console.log("tac_sdk :", tac_sdk);
-
-			// Create sender using TonConnect
-			console.log("tonConnect :", tonConnect);
-			// @ts-ignore
-			let sender = await SenderFactory.getSender({ tonConnect });
-			console.log("sender :", sender);
 
 			//log public my evm address and metaMaskAccount
 			// // Prepare the EVM proxy message
@@ -282,18 +300,6 @@ import * as ethers from "ethers"
 		try {
 			status = "Sending transaction...";
 
-			// Initialize TacSdk
-			let tac_sdk = await TacSdk.create({
-				network: Network.Testnet,
-				delay: 3,
-			});
-			console.log("tac_sdk :", tac_sdk);
-
-			// Create sender using TonConnect
-			console.log("tonConnect :", tonConnect);
-			// @ts-ignore
-			let sender = await SenderFactory.getSender({ tonConnect });
-			console.log("sender :", sender);
 
 			const wTonInfo = {
 				tvmAddress: PUBLIC_WTON_TOKEN_ADDRESS,
@@ -420,8 +426,10 @@ import * as ethers from "ethers"
 			const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
 			//log network id
 			console.log("networkId :", networkId);
-			bmbtcBalance=await getTokenBalance(metaMaskAccount,'0xE7731e1D0925e1a16459d893156598d18415178a');
-
+			bmbtcBalance = await getTokenBalance(
+				metaMaskAccount,
+				"0xE7731e1D0925e1a16459d893156598d18415178a",
+			);
 		} catch (error) {
 			console.error("Error connecting to MetaMask:", error);
 		}
@@ -432,11 +440,11 @@ import * as ethers from "ethers"
 		if (!metaMaskWallet) return;
 
 		// ERC-20 balanceOf function ABI
-		const tokenABI = bmbtcABI
-        console.log('bm btc token abi : ',tokenABI)
+		const tokenABI = bmbtcABI;
+		console.log("bm btc token abi : ", tokenABI);
 		try {
-			console.log('wallet address : ', walletAddress);
-			console.log('token address : ', tokenAddress)
+			console.log("wallet address : ", walletAddress);
+			console.log("token address : ", tokenAddress);
 			// Use ethers.js to interact with the contract
 			// @ts-ignore
 			const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -469,6 +477,9 @@ import * as ethers from "ethers"
 						<div class="ton-connect-container" id="ton-connect"></div>
 						{#if isConnected}
 							<span class="status connected">TON Connected</span>
+							{#if userJettonBalance}
+                              <span class="balance">{Number(userJettonBalance).toFixed(2)} Jettons</span>
+							{/if}
 						{/if}
 					</div>
 					<div class="wallet-item">
@@ -520,8 +531,8 @@ import * as ethers from "ethers"
 										id="jettonAmount"
 										type="number"
 										bind:value={jettonAmount}
-										min="0.0001"
-										step="0.0001"
+										min="1"
+										step="1"
 										placeholder="0.0"
 									/>
 									<span class="token">JETTON</span>
@@ -533,14 +544,13 @@ import * as ethers from "ethers"
 						{:else}
 							<div class="input-group">
 								<label for="bmbtcAmount">BMBTC Amount</label>
-								<label for="balance">{bmbtcBalance} BMBTC</label>
 								<div class="input-wrapper">
 									<input
 										id="bmbtcAmount"
 										type="number"
 										bind:value={bmBTCAmount}
-										min="0.0001"
-										step="0.0001"
+										min="1"
+										step="1"
 										placeholder="0.0"
 									/>
 									<span class="token">BMBTC</span>
@@ -606,11 +616,15 @@ import * as ethers from "ethers"
 		display: flex;
 		justify-content: space-between;
 		gap: 15px;
+		
 	}
 
 	.wallet-item {
+	
 		flex: 1;
 		text-align: center;
+		
+	
 	}
 
 	.ton-connect-container {
@@ -778,5 +792,11 @@ import * as ethers from "ethers"
 		color: #34495e;
 		white-space: pre-wrap;
 		word-wrap: break-word;
+	}
+
+	.balance{
+		color: #27ae60;
+		font-size: small;
+		font-weight: bold;
 	}
 </style>
