@@ -22,8 +22,10 @@
 		PUBLIC_TREASURE_SWAP_ADDRESS,
 		PUBLIC_TREASURE_SWAP_PROXY,
 		PUBLIC_TON_ADDRESS,
+		PUBLIC_BMBTC_TOKEN,
 	} from "$env/static/public";
 
+	console.log("PUBLIC BMBTC ADDRESS : ", PUBLIC_BMBTC_TOKEN);
 	//log all env
 	console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
 	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
@@ -265,18 +267,59 @@
 				sender,
 				assets,
 			);
+			// const tracker1 = await startTracking(transactionLinker, Network.Testnet);
+            //  console.log('tracker 1 log : ', tracker1)
 			// const network=Network.Testnet
-			// const tracker = new OperationTracker(network);
+			// const tracker = new OperationTracker(Network.Testnet);
 
 			// const operationId = await tracker.getOperationId(transactionLinker);
 			// console.log('Operation ID:', operationId);
-			//  const opstatus=await tracker.getOperationStatus(operationId)
-			//  console.log('status : ' , opstatus);
-			//  const simplifiedStatus = await tracker.getSimplifiedOperationStatus(transactionLinker);
-			// 	console.log('Simplified Status:', simplifiedStatus);
+			// Start tracking with retry logic
+			const tracker = new OperationTracker(Network.Testnet);
+			let operationId = null;
+			const maxAttempts = 120; // Maximum retry attempts
+			const retryDelay = 3000; // Delay between retries in milliseconds (3 seconds)
 
-			// // Track transaction status
-			const tracker = await startTracking(transactionLinker, Network.Testnet);
+			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+				try {
+					operationId = await tracker.getOperationId(transactionLinker);
+					console.log(
+						`[${new Date().toISOString()}] Attempt ${attempt} - Operation ID: ${operationId}`,
+					);
+
+					if (operationId) {
+						console.log(
+							`[${new Date().toISOString()}] Successfully retrieved Operation ID: ${operationId}`,
+						);
+						break; // Exit loop if operationId is retrieved
+					} else {
+						console.log(
+							`[${new Date().toISOString()}] Attempt ${attempt} - Operation ID not yet available`,
+						);
+					}
+				} catch (error) {
+					console.error(
+						`[${new Date().toISOString()}] Attempt ${attempt} - Error fetching Operation ID:`,
+						error,
+					);
+				}
+
+				if (attempt === maxAttempts) {
+					throw new Error(
+						"Failed to retrieve Operation ID after maximum attempts",
+					);
+				}
+
+				console.log(
+					`[${new Date().toISOString()}] Waiting ${retryDelay / 1000} seconds before retry...`,
+				);
+				await new Promise((resolve) => setTimeout(resolve, retryDelay)); // Wait before next attempt
+			}
+
+			// Track transaction once operationId is obtained
+
+			// @ts-ignore
+			await trackTransaction(operationId);
 
 			// //log tracker
 			console.log("tracker :", tracker);
@@ -291,6 +334,80 @@
 		}
 	};
 
+	/**
+	 * @param {string} operationId
+	 */
+	// @ts-ignore
+	async function trackTransaction(operationId) {
+		const tracker = new OperationTracker(Network.Testnet);
+
+		try {
+			console.log(`Tracking Operation ID: ${operationId}`);
+        let attempts = 0;
+        const maxAttempts = 30;
+        const delayMs = 5000;
+
+        while (attempts < maxAttempts) {
+            const opStatus = await tracker.getOperationStatus(operationId);
+            console.log("each Status:", opStatus.status);
+            
+            switch (opStatus.status) {
+                case "pending":
+				status = "Transaction is pending...";
+				// console.log("Operation is pending...");
+                    break;
+                case "EVMMerkleRootSet":
+				status = "status : EVMMerkleRootSet";
+				// console.log("Operation is queued for processing...");
+                    break;
+                case "EVMMerkleMessageCollected":
+				status = "status : EVMMerkleMessageCollected";
+				// console.log("EVM merkle Message collected, awaiting further processing...");
+                    break;
+                case "processing":
+				status = "Operation is being processed...";
+				// console.log("Operation is being processed...");
+                    break;
+                case "success":
+				status = "Operation Confirmed";
+				// console.log("Operation Confirmed");
+                    return;
+                case "failed":
+				status = "Operation Failed:", opStatus.errorMessage || "Unknown error";
+				// console.log("Operation Failed:", opStatus.errorMessage || "Unknown error");
+                    return;
+                case "timeout":
+				status = "Operation timed out.";
+				// console.log("Operation timed out.");
+                    return;
+                case "rejected":
+				status = "Operation was rejected by the network.";
+				// console.log("Operation was rejected by the network.");
+                    return;
+                default:
+				status =`Unknown status:", ${opStatus.status}`;
+				// console.log("Unknown status:", opStatus.status);
+                    break;
+            }
+
+            // Wait and retry if not in a final state
+            if (!["success", "failed", "timeout", "rejected"].includes(opStatus.status)) {
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                attempts++;
+            } else {
+                break;
+            }
+        }
+
+        if (attempts >= maxAttempts) {
+            console.log("Max attempts reached, operation still not finalized.");
+        }
+		} catch (error) {
+			console.error(`[${new Date().toISOString()}] Tracking Error:`, error);
+		}
+	}
+
+	//burn tokens
 	const BurnTokens = async () => {
 		if (!isConnected) {
 			status = "Wallet not connected.";
@@ -393,28 +510,6 @@
 		}
 	};
 
-	/**
-	 * @param {string} operationId
-	 */
-	// @ts-ignore
-	async function trackTransaction(operationId) {
-		const tracker = new OperationTracker(Network.Testnet);
-
-		try {
-			// Detailed tracking
-			// const operationId = await tracker.getOperationId(transactionLinker);
-			if (operationId) {
-				const status = await tracker.getOperationStatus(operationId);
-				console.log("Detailed status:", status);
-			} else {
-				console.log("Waiting for validators to receive messages...");
-				// Implement retry logic here
-			}
-		} catch (error) {
-			console.error("Error during tracking:", error);
-		}
-	}
-
 	const handleMetaMaskConnect = async () => {
 		if (!metaMaskWallet) return;
 
@@ -431,10 +526,7 @@
 			//log network id
 			console.log("networkId :", networkId);
 			bmbtcBalance = Number(
-				await getTokenBalance(
-					metaMaskAccount,
-					"0xE7731e1D0925e1a16459d893156598d18415178a",
-				),
+				await getTokenBalance(metaMaskAccount, PUBLIC_BMBTC_TOKEN),
 			);
 		} catch (error) {
 			console.error("Error connecting to MetaMask:", error);
@@ -478,10 +570,11 @@
 
 <main>
 	<div class="wallet-container">
-		<h1>TAC Wallet</h1>
+		
 
 		<!-- Wallet Connection and Operations -->
 		<div class="card">
+			<h1>TAC Wallet</h1>
 			<!-- Wallet Connections -->
 			<div class="wallet-section">
 				<div class="wallet-grid">
@@ -627,208 +720,240 @@
 		font-weight: 700;
 		color: #34495e;
 		text-align: center;
-		margin-bottom: 20px;
+		padding-bottom: 10px;
 	}
 
-	.card {
-		background: #ffffff;
-		border-radius: 16px;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-		padding: 20px;
-		border: 1px solid #e0e5ec;
-	}
+	:global(body) {
+	font-family: "Inter", sans-serif;
+	margin: 0;
+	padding: 20px;
+	background: linear-gradient(135deg, #f0f2f5 0%, #e0e5ec 100%);
+	color: #2c3e50;
+	min-height: 100vh;
+}
 
-	/* Wallet Section */
-	.wallet-section {
-		margin-bottom: 20px;
-	}
+main {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
 
-	.wallet-grid {
-		display: flex;
-		justify-content: space-between;
-		gap: 15px;
-	}
+.wallet-container {
+	width: 100%;
+	max-width: 520px; /* Increased card size */
+}
 
-	.wallet-item {
-		flex: 1;
-		text-align: center;
-	}
+h1 {
+	font-size: 2rem; /* Slightly larger */
+	font-weight: 700;
+	color: #34495e;
+	text-align: center;
+	margin-bottom: 20px;
+}
 
-	.ton-connect-container {
-		min-height: 40px;
-		margin-bottom: 8px;
-	}
+.card {
+	width: 100%;
+	background: #ffffff;
+	border-radius: 16px;
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08); /* Enhanced shadow */
+	padding: 24px; /* Slightly more padding */
+	border: 1px solid #e0e5ec;
+}
 
-	:global(#ton-connect) {
-		width: 100%;
-		max-width: 160px;
-	}
+/* Wallet Section */
+.wallet-section {
+	margin-bottom: 20px;
+}
 
-	.connect-button {
-		width: 100%;
-		padding: 10px;
-		font-size: 0.9rem;
-		font-weight: 600;
-		color: #fff;
-		border: none;
-		border-radius: 8px;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
+.wallet-grid {
+	display: flex;
+	justify-content: space-between;
+	gap: 15px;
+}
 
-	.metamask {
-		background: #3498db;
-	}
+.wallet-item {
+	flex: 1;
+	text-align: center;
+}
 
-	.metamask:hover {
-		background: #2980b9;
-		transform: translateY(-1px);
-	}
+.ton-connect-container {
+	min-height: 40px;
+	margin-bottom: 8px;
+}
 
-	.status {
-		display: block;
-		font-size: 0.8rem;
-		margin-top: 6px;
-	}
+:global(#ton-connect) {
+	width: 100%;
+	max-width: 160px;
+}
 
-	.status.connected {
-		color: #27ae60;
-	}
+.connect-button {
+	width: 100%;
+	padding: 12px; /* Slightly larger */
+	font-size: 1rem; /* Increased font size */
+	font-weight: 600;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
 
-	/* Operations Section */
-	.operations-section {
-		padding-top: 15px;
-		border-top: 1px solid #e0e5ec;
-	}
+.metamask {
+	background: #3b82f6; /* Brighter, modern blue */
+}
 
-	.tab-bar {
-		display: flex;
-		gap: 10px;
-		margin-bottom: 15px;
-	}
+.metamask:hover {
+	background: #3b82f6; /* Brighter, modern blue */
 
-	.tab {
-		flex: 1;
-		padding: 8px;
-		font-size: 0.9rem;
-		font-weight: 500;
-		color: #7f8c8d;
-		background: #f5f7fa;
-		border: none;
-		border-radius: 6px;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
+}
 
-	.tab.active {
-		background: #3498db;
-		color: #fff;
-	}
+.status {
+	display: block;
+	font-size: 0.85rem;
+	margin-top: 6px;
+}
 
-	.tab:hover:not(.active) {
-		background: #e0e5ec;
-	}
+.status.connected {
+	color: #27ae60;
+}
 
-	.tab-content {
-		transition: all 0.3s ease;
-	}
+/* Operations Section */
+.operations-section {
+	padding-top: 15px;
+	border-top: 1px solid #e0e5ec;
+}
 
-	.input-group {
-		margin-bottom: 15px;
-	}
+.tab-bar {
+	display: flex;
+	gap: 10px;
+	margin-bottom: 15px;
+}
 
-	label {
-		display: block;
-		font-size: 0.85rem;
-		font-weight: 500;
-		color: #34495e;
-		margin-bottom: 6px;
-	}
+.tab {
+	flex: 1;
+	padding: 8px;
+	font-size: 1rem; /* Increased font size */
+	font-weight: 500;
+	color: #7f8c8d;
+	background: #f5f7fa;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
 
-	.input-wrapper {
-		position: relative;
-	}
+.tab.active {
+	background: #3b82f6; /* Brighter, modern blue */
+	color: #fff;
+}
 
-	input[type="number"] {
-		width: 100%;
-		padding: 10px 60px 10px 12px;
-		font-size: 0.9rem;
-		color: #2c3e50;
-		border: 1px solid #d0d7de;
-		border-radius: 6px;
-		box-sizing: border-box;
-		transition: all 0.2s ease;
-	}
+.tab:hover:not(.active) {
+	background: #e0e5ec;
+}
 
-	input[type="number"]:focus {
-		border-color: #3498db;
-		box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
-		outline: none;
-	}
+.tab-content {
+	transition: all 0.3s ease;
+}
 
-	.token {
-		position: absolute;
-		right: 10px;
-		top: 50%;
-		transform: translateY(-50%);
-		font-size: 0.8rem;
-		font-weight: 600;
-		color: #7f8c8d;
-		background: #e0e5ec;
-		padding: 2px 6px;
-		border-radius: 4px;
-	}
+.input-group {
+	margin-bottom: 15px;
+}
 
-	.action-button {
-		width: 100%;
-		padding: 12px;
-		font-size: 0.9rem;
-		font-weight: 600;
-		color: #fff;
-		border: none;
-		border-radius: 6px;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
+label {
+	display: block;
+	font-size: 0.9rem; /* Slightly increased */
+	font-weight: 500;
+	color: #34495e;
+	margin-bottom: 6px;
+}
 
-	.mint {
-		background: #27ae60;
-	}
+.input-wrapper {
+	position: relative;
+}
 
-	.mint:hover {
-		background: #219653;
-		transform: translateY(-1px);
-	}
+input[type="number"] {
+	width: 100%;
+	padding: 12px 60px 12px 14px; /* Increased padding */
+	font-size: 1rem; /* Increased */
+	color: #2c3e50;
+	border: 1px solid #d0d7de;
+	border-radius: 6px;
+	box-sizing: border-box;
+	transition: all 0.2s ease;
+}
 
-	.burn {
-		background: #e74c3c;
-	}
+input[type="number"]:focus {
+	background: #3b82f6; /* Brighter, modern blue */
+	box-shadow: 0 0 6px rgba(52, 152, 219, 0.3);
+	outline: none;
+}
 
-	.burn:hover {
-		background: #c0392b;
-		transform: translateY(-1px);
-	}
+.token {
+	position: absolute;
+	right: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: #7f8c8d;
+	background: #e0e5ec;
+	padding: 3px 8px;
+	border-radius: 4px;
+}
 
-	.status-display {
-		margin-top: 15px;
-		padding: 10px;
-		background: #f5f7fa;
-		border: 1px solid #e0e5ec;
-		border-radius: 6px;
-		font-size: 0.8rem;
-		color: #34495e;
-		white-space: pre-wrap;
-		word-wrap: break-word;
-	}
+.action-button {
+	width: 100%;
+	padding: 14px; /* Slightly bigger */
+	font-size: 1rem; /* Increased */
+	font-weight: 600;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
 
-	.balance {
-		color: #27ae60;
-		font-size: small;
-		font-weight: bold;
-		display: flex;
-		flex-direction: row;
-	}
-	.bmbtcbalance {
-		margin-left: auto; /* Pushes it to the right */
-	}
+.mint {
+	background: #2ecc71; /* Brighter green */
+}
+
+.mint:hover {
+	background: #27ae60;
+	transform: translateY(-1px);
+}
+
+.burn {
+	background: #e74c3c;
+}
+
+.burn:hover {
+	background: #c0392b;
+	transform: translateY(-1px);
+}
+
+.status-display {
+	margin-top: 15px;
+	padding: 12px; /* Increased padding */
+	background: #f5f7fa;
+	border: 1px solid #e0e5ec;
+	border-radius: 6px;
+	font-size: 0.9rem; /* Slightly increased */
+	color: #34495e;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}
+
+.balance {
+	color: #27ae60;
+	font-size: 1rem; /* Slightly bigger */
+	font-weight: bold;
+	display: flex;
+	flex-direction: row;
+	padding: 5px;
+}
+
+.bmbtcbalance {
+	margin-left: auto; /* Pushes it to the right */
+}
+
 </style>
