@@ -36,8 +36,9 @@
 	 * @type {import("tac-sdk").SenderAbstraction}
 	 */
 	let sender;
+
 	/**
-	 * @type {bigint}
+	 * @type {number}
 	 */
 	let userJettonBalance;
 	let userTonWalletAddress;
@@ -138,7 +139,7 @@
 				userTonWalletAddress,
 				PUBLIC_JETTON_TOKEN_ADDRESS,
 			);
-		    userJettonBalance=BigInt(Number(balance)/Math.pow(10 , 9))
+			userJettonBalance = Number(BigInt(balance) / BigInt(10 ** 9));
 
 			console.log("user ton wallet address : ", userTonWalletAddress);
 			console.log("user ton jetton balance : ", userJettonBalance);
@@ -178,18 +179,19 @@
 			// };
 			// Create EVM payload
 			// Define TON and Jetton token info (unchanged)
+			console.log("wton token address : ", PUBLIC_WTON_TOKEN_ADDRESS);
 			const wTonInfo = {
 				tvmAddress: PUBLIC_WTON_TOKEN_ADDRESS,
 				name: "Wrapped TON",
 				symbol: "WTON",
-				decimals: 9n,
+				decimals: 9,
 				description: "WTON description",
 				image: "abc",
 			};
 
 			const tokenMintInfoForWTON = {
 				info: wTonInfo,
-				mintAmount: 10n ** 9n,
+				mintAmount: 10 ** 9,
 			};
 
 			const jettonInfo = {
@@ -204,13 +206,14 @@
 			// @ts-ignore
 			const tokenMintInfoForJetton = {
 				info: jettonInfo,
-				mintAmount: 10n ** 9n,
+				mintAmount: 10 ** 9,
 			};
 
 			// Encoding with single parameter
 			const to = metaMaskAccount;
 			console.log("to address : ", to);
-			const wTONamt = tokenMintInfoForWTON.mintAmount;
+			const wTONamt = 1 * Number(tokenMintInfoForWTON.mintAmount);
+			console.log("wton amount for mint : ", wTONamt);
 			const methodName = "mint(bytes,bytes)";
 			// const methodName = "mint";
 			const abi = ethers.AbiCoder.defaultAbiCoder();
@@ -219,11 +222,12 @@
 			// Encode everything into a single parameter
 			// Including both tacHeader and arguments as a tuple
 			// Encode TAC header separately
-			// const tacHeader = abi.encode(
-			// ["tuple(uint64,address)"], // TacHeaderV1 (queryId and tvmCaller)
-			// [[0n, to]]
-			//  );
+			// 	const tacHeader = abi.encode(
+			// 	["tuple(uint64,address)"], // TacHeaderV1 (queryId and tvmCaller)
+			// 	[[0n, to]]
+			// 	 );
 
+			// console.log('tac header : ' , tacHeader)
 			// Encode MintArguments correctly as bytes
 			const mintArguments = abi.encode(
 				["tuple(address,uint256)"], // MintArguments struct (to, wTONamt)
