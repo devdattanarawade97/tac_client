@@ -65,8 +65,8 @@
 	 */
 	let tonConnect = null;
 
-	let jettonAmount = 1;
-	let bmBTCAmount = 1;
+	let jettonInputAmount = 1;
+	let bmBTCInputAmount = 1;
 	let status = "";
 	let bmbtcBalance = 0;
 
@@ -141,10 +141,18 @@
 				userTonWalletAddress,
 				PUBLIC_JETTON_TOKEN_ADDRESS,
 			);
+
 			userJettonBalance = Number(BigInt(balance) / BigInt(10 ** 9));
 
 			console.log("user ton wallet address : ", userTonWalletAddress);
 			console.log("user ton jetton balance : ", userJettonBalance);
+			const add = await tac_sdk.getEVMTokenAddress(PUBLIC_JETTON_TOKEN_ADDRESS);
+
+			console.log("evm side address of jetton : ", add);
+			const tvmAddress = await tac_sdk.getTVMTokenAddress(
+				PUBLIC_WTON_TOKEN_ADDRESS,
+			);
+			console.log("tvm side address of jetton : ", tvmAddress);
 		});
 
 		// @ts-ignore
@@ -164,7 +172,7 @@
 			return;
 		}
 
-		if (jettonAmount < 1) {
+		if (jettonInputAmount < 1) {
 			status = "Please enter a valid Jetton amount.";
 			return;
 		}
@@ -196,31 +204,15 @@
 				mintAmount: 10 ** 9,
 			};
 
-			const jettonInfo = {
-				tvmAddress: PUBLIC_JETTON_TOKEN_ADDRESS,
-				name: "JettonBTC",
-				symbol: "JBTC",
-				decimals: 9n,
-				description: "TON description",
-				image: "https://ton.com/image.png",
-			};
-
-			// @ts-ignore
-			const tokenMintInfoForJetton = {
-				info: jettonInfo,
-				mintAmount: 10 ** 9,
-			};
-
+	
 			// Encoding with single parameter
 			const to = metaMaskAccount;
 			console.log("to address : ", to);
 			const wTONamt = 1 * Number(tokenMintInfoForWTON.mintAmount);
 			console.log("wton amount for mint : ", wTONamt);
 			const methodName = "mint(bytes,bytes)";
-			// const methodName = "mint";
+			//  const methodName = "mint";
 			const abi = ethers.AbiCoder.defaultAbiCoder();
-
-			console.log("ton wallet address : ", PUBLIC_TON_ADDRESS);
 			// Encode everything into a single parameter
 			// Including both tacHeader and arguments as a tuple
 			// Encode TAC header separately
@@ -257,7 +249,7 @@
 			const assets = [
 				{
 					address: PUBLIC_JETTON_TOKEN_ADDRESS,
-					amount: jettonAmount,
+					amount: jettonInputAmount,
 				},
 			];
 
@@ -267,62 +259,22 @@
 				sender,
 				assets,
 			);
-			// const tracker1 = await startTracking(transactionLinker, Network.Testnet);
-            //  console.log('tracker 1 log : ', tracker1)
+
+			 const tracker1 = await startTracking(transactionLinker, Network.Testnet);
+			  console.log('tracker 1 log : ', tracker1)
 			// const network=Network.Testnet
 			// const tracker = new OperationTracker(Network.Testnet);
 
 			// const operationId = await tracker.getOperationId(transactionLinker);
 			// console.log('Operation ID:', operationId);
 			// Start tracking with retry logic
-			const tracker = new OperationTracker(Network.Testnet);
-			let operationId = null;
-			const maxAttempts = 120; // Maximum retry attempts
-			const retryDelay = 3000; // Delay between retries in milliseconds (3 seconds)
-
-			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-				try {
-					operationId = await tracker.getOperationId(transactionLinker);
-					console.log(
-						`[${new Date().toISOString()}] Attempt ${attempt} - Operation ID: ${operationId}`,
-					);
-
-					if (operationId) {
-						console.log(
-							`[${new Date().toISOString()}] Successfully retrieved Operation ID: ${operationId}`,
-						);
-						break; // Exit loop if operationId is retrieved
-					} else {
-						console.log(
-							`[${new Date().toISOString()}] Attempt ${attempt} - Operation ID not yet available`,
-						);
-					}
-				} catch (error) {
-					console.error(
-						`[${new Date().toISOString()}] Attempt ${attempt} - Error fetching Operation ID:`,
-						error,
-					);
-				}
-
-				if (attempt === maxAttempts) {
-					throw new Error(
-						"Failed to retrieve Operation ID after maximum attempts",
-					);
-				}
-
-				console.log(
-					`[${new Date().toISOString()}] Waiting ${retryDelay / 1000} seconds before retry...`,
-				);
-				await new Promise((resolve) => setTimeout(resolve, retryDelay)); // Wait before next attempt
-			}
 
 			// Track transaction once operationId is obtained
-
-			// @ts-ignore
-			await trackTransaction(operationId);
+			// const operationId=await getOperationId(transactionLinker);
+			// // @ts-ignore
+			// await trackTransaction(operationId);
 
 			// //log tracker
-			console.log("tracker :", tracker);
 
 			tac_sdk.closeConnections();
 			// trackTransaction(tracker);
@@ -334,79 +286,7 @@
 		}
 	};
 
-	/**
-	 * @param {string} operationId
-	 */
-	// @ts-ignore
-	async function trackTransaction(operationId) {
-		const tracker = new OperationTracker(Network.Testnet);
-
-		try {
-			console.log(`Tracking Operation ID: ${operationId}`);
-        let attempts = 0;
-        const maxAttempts = 30;
-        const delayMs = 5000;
-
-        while (attempts < maxAttempts) {
-            const opStatus = await tracker.getOperationStatus(operationId);
-            console.log("each Status:", opStatus.status);
-            
-            switch (opStatus.status) {
-                case "pending":
-				status = "Transaction is pending...";
-				// console.log("Operation is pending...");
-                    break;
-                case "EVMMerkleRootSet":
-				status = "status : EVMMerkleRootSet";
-				// console.log("Operation is queued for processing...");
-                    break;
-                case "EVMMerkleMessageCollected":
-				status = "status : EVMMerkleMessageCollected";
-				// console.log("EVM merkle Message collected, awaiting further processing...");
-                    break;
-                case "processing":
-				status = "Operation is being processed...";
-				// console.log("Operation is being processed...");
-                    break;
-                case "success":
-				status = "Operation Confirmed";
-				// console.log("Operation Confirmed");
-                    return;
-                case "failed":
-				status = "Operation Failed:", opStatus.errorMessage || "Unknown error";
-				// console.log("Operation Failed:", opStatus.errorMessage || "Unknown error");
-                    return;
-                case "timeout":
-				status = "Operation timed out.";
-				// console.log("Operation timed out.");
-                    return;
-                case "rejected":
-				status = "Operation was rejected by the network.";
-				// console.log("Operation was rejected by the network.");
-                    return;
-                default:
-				status =`Unknown status:", ${opStatus.status}`;
-				// console.log("Unknown status:", opStatus.status);
-                    break;
-            }
-
-            // Wait and retry if not in a final state
-            if (!["success", "failed", "timeout", "rejected"].includes(opStatus.status)) {
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-                attempts++;
-            } else {
-                break;
-            }
-        }
-
-        if (attempts >= maxAttempts) {
-            console.log("Max attempts reached, operation still not finalized.");
-        }
-		} catch (error) {
-			console.error(`[${new Date().toISOString()}] Tracking Error:`, error);
-		}
-	}
-
+	
 	//burn tokens
 	const BurnTokens = async () => {
 		if (!isConnected) {
@@ -414,49 +294,64 @@
 			return;
 		}
 
-		if (bmBTCAmount < 1) {
+		if (bmBTCInputAmount < 1) {
 			status = "Please enter a valid bmbtc amount.";
 			return;
 		}
 
 		try {
 			status = "Sending transaction...";
-
 			const wTonInfo = {
 				tvmAddress: PUBLIC_WTON_TOKEN_ADDRESS,
 				name: "Wrapped TON",
 				symbol: "WTON",
-				decimals: 9n,
+				decimals: 9,
 				description: "WTON description",
 				image: "abc",
 			};
 
 			const tokenMintInfoForWTON = {
 				info: wTonInfo,
-				mintAmount: 10n ** 9n,
+				mintAmount: 10 ** 9,
+			};
+
+	
+	
+		
+			const amount = 1 * Number(tokenMintInfoForWTON.mintAmount);
+			const bmbtcInfo = {
+				evmAdress: PUBLIC_BMBTC_TOKEN,
+				name: "BIMA BTC",
+				symbol: "BMBTC",
+				decimals: 6,
+				description: "bmbtc description",
+				image: "abc",
+			};
+
+			const tokenMintInfoForBMBTC = {
+				info: bmbtcInfo,
+				mintAmount: 10 ** 6,
 			};
 
 			// Encoding with single parameter
-			const to = PUBLIC_TON_ADDRESS;
+			const to = metaMaskAccount;
 			console.log("to address : ", to);
 			// @ts-ignore
-			const wTONamt = tokenMintInfoForWTON.mintAmount;
+			const bmbtcAmount =1 * Number(tokenMintInfoForBMBTC.mintAmount);
 			const methodName = "burn(bytes,bytes)";
 			// const methodName = "burn";
 			const abi = ethers.AbiCoder.defaultAbiCoder();
 
-			console.log("ton wallet address : ", PUBLIC_TON_ADDRESS);
-
 			// Encode MintArguments correctly as bytes
-			const mintArguments = abi.encode(
-				["tuple(address,uint256)"], // MintArguments struct (to, wTONamt)
-				[[to, bmBTCAmount]],
+			const burnArguments = abi.encode(
+				["tuple(address,uint256)"], // MintArguments struct (to, amount)
+				[[to, amount]],
 			);
 
 			// console.log('tac header bytes : ', tacHeader);
-			console.log("arguments bytes : ", mintArguments);
+			console.log("arguments bytes : ", burnArguments);
 
-			const encodedParameters = mintArguments;
+			const encodedParameters = burnArguments;
 
 			console.log("encodedParameters: ", encodedParameters);
 
@@ -470,11 +365,11 @@
 			console.log("Encoded Parameters:", encodedParameters);
 			console.log("EVM proxy message:", evmProxyMsg);
 
-			// Prepare jetton details
+			// Prepare bmbtc asset details
 			const assets = [
 				{
-					address: PUBLIC_JETTON_TOKEN_ADDRESS,
-					amount: jettonAmount,
+					address: PUBLIC_BMBTC_TOKEN,
+					amount: bmbtcAmount,
 				},
 			];
 
@@ -484,22 +379,16 @@
 				sender,
 				assets,
 			);
-			// const network=Network.Testnet
-			// const tracker = new OperationTracker(network);
-
-			// const operationId = await tracker.getOperationId(transactionLinker);
-			// console.log('Operation ID:', operationId);
-			//  const opstatus=await tracker.getOperationStatus(operationId)
-			//  console.log('status : ' , opstatus);
-			//  const simplifiedStatus = await tracker.getSimplifiedOperationStatus(transactionLinker);
-			// 	console.log('Simplified Status:', simplifiedStatus);
 
 			// // Track transaction status
 			const tracker = await startTracking(transactionLinker, Network.Testnet);
 
 			// //log tracker
 			console.log("tracker :", tracker);
-
+			// Track transaction once operationId is obtained
+			const operationId=await getOperationId(transactionLinker);
+			// @ts-ignore
+			await trackTransaction(operationId);
 			tac_sdk.closeConnections();
 			// trackTransaction(tracker);
 			status = `Transaction successful! `;
@@ -509,6 +398,114 @@
 			console.error("Transaction error:", error);
 		}
 	};
+//get op id
+
+	// @ts-ignore
+	async function getOperationId(transactionLinker) {
+		status = "Updating Transaction Status";
+		const tracker = new OperationTracker(Network.Testnet);
+		let operationId = null;
+		const maxAttempts = 120; // Maximum retry attempts
+		const retryDelay = 3000; // Delay between retries in milliseconds (3 seconds)
+
+		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+			try {
+				operationId = await tracker.getOperationId(transactionLinker);
+				console.log(
+					`[${new Date().toISOString()}] Attempt ${attempt} - Operation ID: ${operationId}`,
+				);
+
+				if (operationId) {
+					console.log(
+						`[${new Date().toISOString()}] Successfully retrieved Operation ID: ${operationId}`,
+					);
+					break; // Exit loop if operationId is retrieved
+				} else {
+					console.log(
+						`[${new Date().toISOString()}] Attempt ${attempt} - Operation ID not yet available`,
+					);
+				}
+			} catch (error) {
+				console.error(
+					`[${new Date().toISOString()}] Attempt ${attempt} - Error fetching Operation ID:`,
+					error,
+				);
+			}
+
+			if (attempt === maxAttempts) {
+				throw new Error(
+					"Failed to retrieve Operation ID after maximum attempts",
+				);
+			}
+
+			console.log(
+				`[${new Date().toISOString()}] Waiting ${retryDelay / 1000} seconds before retry...`,
+			);
+			await new Promise((resolve) => setTimeout(resolve, retryDelay)); // Wait before next attempt
+		}
+		return operationId
+	}
+	/**
+	 * @param {string} operationId
+	 */
+	// @ts-ignore
+	async function trackTransaction(operationId) {
+		const tracker = new OperationTracker(Network.Testnet);
+
+		try {
+			console.log(`Tracking Operation ID: ${operationId}`);
+			let attempts = 0;
+			const maxAttempts = 30;
+			const delayMs = 5000;
+
+			while (attempts < maxAttempts) {
+				const opStatus = await tracker.getOperationStatus(operationId);
+				console.log("Each Status:", opStatus.status);
+
+				switch (opStatus.status) {
+					case "EVMMerkleMessageCollected":
+						status = "Transaction Status : EVMMerkleMessageCollected";
+						break;
+					case "EVMMerkleRootSet":
+						status = "Transaction Status : EVMMerkleRootSet";
+						break;
+					case "EVMMerkleMessageExecuted":
+						status = "Transaction Status : EVMMerkleMessageExecuted";
+						break;
+					case "TVMMerkleMessageCollected":
+						status = "Transaction Status : TVMMerkleMessageCollected";
+						break;
+					case "TVMMerkleRootSet":
+						status = "Transaction Status : TVMMerkleRootSet";
+						break;
+					case "TVMMerkleMessageExecuted":
+						status = "Transaction Status : TVMMerkleMessageExecuted";
+						break;
+					case "FinalSuccessfulState":
+						status = "Transaction Status : FinalSuccessfulState";
+						return;
+					default:
+						status = `Transaction Status : ${opStatus.status}`;
+						break;
+				}
+
+				// Wait and retry if not in a final state
+				if (!["FinalSuccessfulState"].includes(opStatus.status)) {
+					await new Promise((resolve) => setTimeout(resolve, delayMs));
+					attempts++;
+				} else {
+					break;
+				}
+			}
+
+			if (attempts >= maxAttempts) {
+				console.log("Max attempts reached, operation still not finalized.");
+			}
+		} catch (error) {
+			console.error(`[${new Date().toISOString()}] Tracking Error:`, error);
+			status = `Tracking Error: : ${error}`;
+		}
+	}
 
 	const handleMetaMaskConnect = async () => {
 		if (!metaMaskWallet) return;
@@ -525,9 +522,8 @@
 			const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
 			//log network id
 			console.log("networkId :", networkId);
-			bmbtcBalance = Number(
-				await getTokenBalance(metaMaskAccount, PUBLIC_BMBTC_TOKEN),
-			);
+			bmbtcBalance =Number( await getTokenBalance(metaMaskAccount, PUBLIC_BMBTC_TOKEN))
+
 		} catch (error) {
 			console.error("Error connecting to MetaMask:", error);
 		}
@@ -550,13 +546,20 @@
 				const provider = new ethers.BrowserProvider(window.ethereum);
 				const contract = new ethers.Contract(tokenAddress, tokenABI, provider);
 
-				const balance = await contract.balanceOf(walletAddress);
-				const decimals = await contract.decimals();
+				const balance = Number(await contract.balanceOf(walletAddress));
+				const decimals = Number(await contract.decimals());
 
 				// Convert balance based on token decimals
 				// @ts-ignore
-				formattedBalance = ethers.formatUnits(balance, decimals);
-				console.log(`Token (${tokenAddress}) Balance:`, balance);
+				console.log('bmbtc balance : ',balance)
+				if(balance==0){
+					formattedBalance=0;
+					return formattedBalance;
+				}
+				else{
+					formattedBalance =Number(ethers.formatUnits(balance, decimals));
+				console.log(`Token ${tokenAddress} Balance:`, balance);
+				}
 			} else {
 				console.error("MetaMask is not installed!");
 			}
@@ -570,8 +573,6 @@
 
 <main>
 	<div class="wallet-container">
-		
-
 		<!-- Wallet Connection and Operations -->
 		<div class="card">
 			<h1>TAC Wallet</h1>
@@ -643,7 +644,7 @@
 									<input
 										id="jettonAmount"
 										type="number"
-										bind:value={jettonAmount}
+										bind:value={jettonInputAmount}
 										min="1"
 										step="1"
 										placeholder="0.0"
@@ -663,7 +664,7 @@
 											>BMBTC Amount
 										</label>
 										<div class="bmbtcbalance">
-											balance : {Number(bmbtcBalance).toFixed(2)} BMBTC
+											balance : {bmbtcBalance.toFixed(2)} BMBTC
 										</div>
 									</div>
 								{/if}
@@ -672,7 +673,7 @@
 									<input
 										id="bmbtcAmount"
 										type="number"
-										bind:value={bmBTCAmount}
+										bind:value={bmBTCInputAmount}
 										min="1"
 										step="1"
 										placeholder="0.0"
@@ -724,236 +725,234 @@
 	}
 
 	:global(body) {
-	font-family: "Inter", sans-serif;
-	margin: 0;
-	padding: 20px;
-	background: linear-gradient(135deg, #f0f2f5 0%, #e0e5ec 100%);
-	color: #2c3e50;
-	min-height: 100vh;
-}
+		font-family: "Inter", sans-serif;
+		margin: 0;
+		padding: 20px;
+		background: linear-gradient(135deg, #f0f2f5 0%, #e0e5ec 100%);
+		color: #2c3e50;
+		min-height: 100vh;
+	}
 
-main {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-}
+	main {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
 
-.wallet-container {
-	width: 100%;
-	max-width: 520px; /* Increased card size */
-}
+	.wallet-container {
+		width: 100%;
+		max-width: 520px; /* Increased card size */
+	}
 
-h1 {
-	font-size: 2rem; /* Slightly larger */
-	font-weight: 700;
-	color: #34495e;
-	text-align: center;
-	margin-bottom: 20px;
-}
+	h1 {
+		font-size: 2rem; /* Slightly larger */
+		font-weight: 700;
+		color: #34495e;
+		text-align: center;
+		margin-bottom: 20px;
+	}
 
-.card {
-	width: 100%;
-	background: #ffffff;
-	border-radius: 16px;
-	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08); /* Enhanced shadow */
-	padding: 24px; /* Slightly more padding */
-	border: 1px solid #e0e5ec;
-}
+	.card {
+		width: 100%;
+		background: #ffffff;
+		border-radius: 16px;
+		box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08); /* Enhanced shadow */
+		padding: 24px; /* Slightly more padding */
+		border: 1px solid #e0e5ec;
+	}
 
-/* Wallet Section */
-.wallet-section {
-	margin-bottom: 20px;
-}
+	/* Wallet Section */
+	.wallet-section {
+		margin-bottom: 20px;
+	}
 
-.wallet-grid {
-	display: flex;
-	justify-content: space-between;
-	gap: 15px;
-}
+	.wallet-grid {
+		display: flex;
+		justify-content: space-between;
+		gap: 15px;
+	}
 
-.wallet-item {
-	flex: 1;
-	text-align: center;
-}
+	.wallet-item {
+		flex: 1;
+		text-align: center;
+	}
 
-.ton-connect-container {
-	min-height: 40px;
-	margin-bottom: 8px;
-}
+	.ton-connect-container {
+		min-height: 40px;
+		margin-bottom: 8px;
+	}
 
-:global(#ton-connect) {
-	width: 100%;
-	max-width: 160px;
-}
+	:global(#ton-connect) {
+		width: 100%;
+		max-width: 160px;
+	}
 
-.connect-button {
-	width: 100%;
-	padding: 12px; /* Slightly larger */
-	font-size: 1rem; /* Increased font size */
-	font-weight: 600;
-	color: #fff;
-	border: none;
-	border-radius: 8px;
-	cursor: pointer;
-	transition: all 0.2s ease;
-}
+	.connect-button {
+		width: 100%;
+		padding: 12px; /* Slightly larger */
+		font-size: 1rem; /* Increased font size */
+		font-weight: 600;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
 
-.metamask {
-	background: #3b82f6; /* Brighter, modern blue */
-}
+	.metamask {
+		background: #3b82f6; /* Brighter, modern blue */
+	}
 
-.metamask:hover {
-	background: #3b82f6; /* Brighter, modern blue */
+	.metamask:hover {
+		background: #3b82f6; /* Brighter, modern blue */
+	}
 
-}
+	.status {
+		display: block;
+		font-size: 0.85rem;
+		margin-top: 6px;
+	}
 
-.status {
-	display: block;
-	font-size: 0.85rem;
-	margin-top: 6px;
-}
+	.status.connected {
+		color: #27ae60;
+	}
 
-.status.connected {
-	color: #27ae60;
-}
+	/* Operations Section */
+	.operations-section {
+		padding-top: 15px;
+		border-top: 1px solid #e0e5ec;
+	}
 
-/* Operations Section */
-.operations-section {
-	padding-top: 15px;
-	border-top: 1px solid #e0e5ec;
-}
+	.tab-bar {
+		display: flex;
+		gap: 10px;
+		margin-bottom: 15px;
+	}
 
-.tab-bar {
-	display: flex;
-	gap: 10px;
-	margin-bottom: 15px;
-}
+	.tab {
+		flex: 1;
+		padding: 8px;
+		font-size: 1rem; /* Increased font size */
+		font-weight: 500;
+		color: #7f8c8d;
+		background: #f5f7fa;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
 
-.tab {
-	flex: 1;
-	padding: 8px;
-	font-size: 1rem; /* Increased font size */
-	font-weight: 500;
-	color: #7f8c8d;
-	background: #f5f7fa;
-	border: none;
-	border-radius: 6px;
-	cursor: pointer;
-	transition: all 0.2s ease;
-}
+	.tab.active {
+		background: #3b82f6; /* Brighter, modern blue */
+		color: #fff;
+	}
 
-.tab.active {
-	background: #3b82f6; /* Brighter, modern blue */
-	color: #fff;
-}
+	.tab:hover:not(.active) {
+		background: #e0e5ec;
+	}
 
-.tab:hover:not(.active) {
-	background: #e0e5ec;
-}
+	.tab-content {
+		transition: all 0.3s ease;
+	}
 
-.tab-content {
-	transition: all 0.3s ease;
-}
+	.input-group {
+		margin-bottom: 15px;
+	}
 
-.input-group {
-	margin-bottom: 15px;
-}
+	label {
+		display: block;
+		font-size: 0.9rem; /* Slightly increased */
+		font-weight: 500;
+		color: #34495e;
+		margin-bottom: 6px;
+	}
 
-label {
-	display: block;
-	font-size: 0.9rem; /* Slightly increased */
-	font-weight: 500;
-	color: #34495e;
-	margin-bottom: 6px;
-}
+	.input-wrapper {
+		position: relative;
+	}
 
-.input-wrapper {
-	position: relative;
-}
+	input[type="number"] {
+		width: 100%;
+		padding: 12px 60px 12px 14px; /* Increased padding */
+		font-size: 1rem; /* Increased */
+		color: #2c3e50;
+		border: 1px solid #d0d7de;
+		border-radius: 6px;
+		box-sizing: border-box;
+		transition: all 0.2s ease;
+	}
 
-input[type="number"] {
-	width: 100%;
-	padding: 12px 60px 12px 14px; /* Increased padding */
-	font-size: 1rem; /* Increased */
-	color: #2c3e50;
-	border: 1px solid #d0d7de;
-	border-radius: 6px;
-	box-sizing: border-box;
-	transition: all 0.2s ease;
-}
+	input[type="number"]:focus {
+		background: #3b82f6; /* Brighter, modern blue */
+		box-shadow: 0 0 6px rgba(52, 152, 219, 0.3);
+		outline: none;
+	}
 
-input[type="number"]:focus {
-	background: #3b82f6; /* Brighter, modern blue */
-	box-shadow: 0 0 6px rgba(52, 152, 219, 0.3);
-	outline: none;
-}
+	.token {
+		position: absolute;
+		right: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: #7f8c8d;
+		background: #e0e5ec;
+		padding: 3px 8px;
+		border-radius: 4px;
+	}
 
-.token {
-	position: absolute;
-	right: 10px;
-	top: 50%;
-	transform: translateY(-50%);
-	font-size: 0.85rem;
-	font-weight: 600;
-	color: #7f8c8d;
-	background: #e0e5ec;
-	padding: 3px 8px;
-	border-radius: 4px;
-}
+	.action-button {
+		width: 100%;
+		padding: 14px; /* Slightly bigger */
+		font-size: 1rem; /* Increased */
+		font-weight: 600;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
 
-.action-button {
-	width: 100%;
-	padding: 14px; /* Slightly bigger */
-	font-size: 1rem; /* Increased */
-	font-weight: 600;
-	color: #fff;
-	border: none;
-	border-radius: 8px;
-	cursor: pointer;
-	transition: all 0.2s ease;
-}
+	.mint {
+		background: #2ecc71; /* Brighter green */
+	}
 
-.mint {
-	background: #2ecc71; /* Brighter green */
-}
+	.mint:hover {
+		background: #27ae60;
+		transform: translateY(-1px);
+	}
 
-.mint:hover {
-	background: #27ae60;
-	transform: translateY(-1px);
-}
+	.burn {
+		background: #e74c3c;
+	}
 
-.burn {
-	background: #e74c3c;
-}
+	.burn:hover {
+		background: #c0392b;
+		transform: translateY(-1px);
+	}
 
-.burn:hover {
-	background: #c0392b;
-	transform: translateY(-1px);
-}
+	.status-display {
+		margin-top: 15px;
+		padding: 12px; /* Increased padding */
+		background: #f5f7fa;
+		border: 1px solid #e0e5ec;
+		border-radius: 6px;
+		font-size: 0.9rem; /* Slightly increased */
+		color: #34495e;
+		white-space: pre-wrap;
+		word-wrap: break-word;
+	}
 
-.status-display {
-	margin-top: 15px;
-	padding: 12px; /* Increased padding */
-	background: #f5f7fa;
-	border: 1px solid #e0e5ec;
-	border-radius: 6px;
-	font-size: 0.9rem; /* Slightly increased */
-	color: #34495e;
-	white-space: pre-wrap;
-	word-wrap: break-word;
-}
+	.balance {
+		color: #27ae60;
+		font-size: 1rem; /* Slightly bigger */
+		font-weight: bold;
+		display: flex;
+		flex-direction: row;
+		padding: 5px;
+	}
 
-.balance {
-	color: #27ae60;
-	font-size: 1rem; /* Slightly bigger */
-	font-weight: bold;
-	display: flex;
-	flex-direction: row;
-	padding: 5px;
-}
-
-.bmbtcbalance {
-	margin-left: auto; /* Pushes it to the right */
-}
-
+	.bmbtcbalance {
+		margin-left: auto; /* Pushes it to the right */
+	}
 </style>
