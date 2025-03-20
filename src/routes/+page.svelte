@@ -5,6 +5,10 @@
 	import { onMount } from "svelte";
 	import { TonConnectUI } from "@tonconnect/ui";
 	import * as ethers from "ethers";
+	import addresses from "../addresses.json";
+	import treasureySwapABI from "../abi/treasureySwapABI.json";
+
+    
 	import {
 		TacSdk,
 		Network,
@@ -30,15 +34,22 @@
 	console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
 	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
 	console.log("PUBLIC_WTON_TOKEN_ADDRESS :", PUBLIC_WTON_TOKEN_ADDRESS);
+
+	/**
+	 * @type {string}
+	 */
+	let evmAddressOfJetton;
 	/**
 	 * @type {TacSdk}
 	 */
+	
 	let tac_sdk;
 	/**
 	 * @type {import("tac-sdk").SenderAbstraction}
 	 */
 	let sender;
 
+	let loadingEquivalent = false;
 	/**
 	 * @type {number}
 	 */
@@ -69,7 +80,8 @@
 	let bmBTCInputAmount = 1;
 	let status = "";
 	let bmbtcBalance = 0;
-
+	let equivalentBmbtc = 0;
+	let equivalentWton=0;
 	// Initialize TonConnect
 	onMount(async () => {
 		tonConnect = new TonConnectUI({
@@ -146,9 +158,9 @@
 
 			console.log("user ton wallet address : ", userTonWalletAddress);
 			console.log("user ton jetton balance : ", userJettonBalance);
-			const add = await tac_sdk.getEVMTokenAddress(PUBLIC_JETTON_TOKEN_ADDRESS);
+			evmAddressOfJetton = await tac_sdk.getEVMTokenAddress(PUBLIC_JETTON_TOKEN_ADDRESS);
 
-			console.log("evm side address of jetton : ", add);
+			console.log("evm side address of jetton : ", evmAddressOfJetton);
 			const tvmAddress = await tac_sdk.getTVMTokenAddress(
 				PUBLIC_WTON_TOKEN_ADDRESS,
 			);
@@ -204,7 +216,6 @@
 				mintAmount: 10 ** 9,
 			};
 
-	
 			// Encoding with single parameter
 			const to = metaMaskAccount;
 			console.log("to address : ", to);
@@ -260,8 +271,8 @@
 				assets,
 			);
 
-			 const tracker1 = await startTracking(transactionLinker, Network.Testnet);
-			  console.log('tracker 1 log : ', tracker1)
+			const tracker1 = await startTracking(transactionLinker, Network.Testnet);
+			console.log("tracker 1 log : ", tracker1);
 			// const network=Network.Testnet
 			// const tracker = new OperationTracker(Network.Testnet);
 
@@ -286,7 +297,6 @@
 		}
 	};
 
-	
 	//burn tokens
 	const BurnTokens = async () => {
 		if (!isConnected) {
@@ -315,9 +325,6 @@
 				mintAmount: 10 ** 9,
 			};
 
-	
-	
-		
 			const amount = 1 * Number(tokenMintInfoForWTON.mintAmount);
 			const bmbtcInfo = {
 				evmAdress: PUBLIC_BMBTC_TOKEN,
@@ -337,7 +344,7 @@
 			const to = metaMaskAccount;
 			console.log("to address : ", to);
 			// @ts-ignore
-			const bmbtcAmount =1 * Number(tokenMintInfoForBMBTC.mintAmount);
+			const bmbtcAmount = 1 * Number(tokenMintInfoForBMBTC.mintAmount);
 			const methodName = "burn(bytes,bytes)";
 			// const methodName = "burn";
 			const abi = ethers.AbiCoder.defaultAbiCoder();
@@ -386,7 +393,7 @@
 			// //log tracker
 			console.log("tracker :", tracker);
 			// Track transaction once operationId is obtained
-			const operationId=await getOperationId(transactionLinker);
+			const operationId = await getOperationId(transactionLinker);
 			// @ts-ignore
 			await trackTransaction(operationId);
 			tac_sdk.closeConnections();
@@ -398,7 +405,7 @@
 			console.error("Transaction error:", error);
 		}
 	};
-//get op id
+	//get op id
 
 	// @ts-ignore
 	async function getOperationId(transactionLinker) {
@@ -443,7 +450,65 @@
 			);
 			await new Promise((resolve) => setTimeout(resolve, retryDelay)); // Wait before next attempt
 		}
-		return operationId
+		return operationId;
+	}
+
+	// @ts-ignore
+	async function handleJettonInputChange(e) {
+		loadingEquivalent = true;
+		const value = e.target.value;
+
+		try {
+			// @ts-ignore
+			if (typeof window.ethereum !== "undefined") {
+				// @ts-ignore
+				const provider = new ethers.BrowserProvider(window.ethereum);
+				const contract = new ethers.Contract(
+					addresses.BMBTC_Treasury,
+					treasureySwapABI,
+					provider,
+				);
+
+				equivalentBmbtc = Number(
+					await contract.getTokenValue(jettonInputAmount),
+				);
+				console.log("equivalent bmbtc", equivalentBmbtc);
+				loadingEquivalent = false;
+			} else {
+				console.error("MetaMask is not installed!");
+			}
+		} catch (error) {
+			console.log("error while fetching equivalent bmbtc for TON", value);
+		}
+	}
+
+	// @ts-ignore
+	async function handleBmbtcInputChange(e) {
+		loadingEquivalent = true;
+		const value = e.target.value;
+
+		try {
+			// @ts-ignore
+			if (typeof window.ethereum !== "undefined") {
+				// @ts-ignore
+				const provider = new ethers.BrowserProvider(window.ethereum);
+				const contract = new ethers.Contract(
+					addresses.BMBTC_Treasury,
+					treasureySwapABI,
+					provider,
+				);
+
+				equivalentWton = Number(
+					await contract.getTokenValue(bmBTCInputAmount),
+				);
+				console.log("equivalent bmbtc", equivalentWton);
+				loadingEquivalent = false;
+			} else {
+				console.error("MetaMask is not installed!");
+			}
+		} catch (error) {
+			console.log("error while fetching equivalent bmbtc for TON", value);
+		}
 	}
 	/**
 	 * @param {string} operationId
@@ -522,8 +587,9 @@
 			const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
 			//log network id
 			console.log("networkId :", networkId);
-			bmbtcBalance =Number( await getTokenBalance(metaMaskAccount, PUBLIC_BMBTC_TOKEN))
-
+			bmbtcBalance = Number(
+				await getTokenBalance(metaMaskAccount, PUBLIC_BMBTC_TOKEN),
+			);
 		} catch (error) {
 			console.error("Error connecting to MetaMask:", error);
 		}
@@ -551,14 +617,13 @@
 
 				// Convert balance based on token decimals
 				// @ts-ignore
-				console.log('bmbtc balance : ',balance)
-				if(balance==0){
-					formattedBalance=0;
+				console.log("bmbtc balance : ", balance);
+				if (balance == 0) {
+					formattedBalance = 0;
 					return formattedBalance;
-				}
-				else{
-					formattedBalance =Number(ethers.formatUnits(balance, decimals));
-				console.log(`Token ${tokenAddress} Balance:`, balance);
+				} else {
+					formattedBalance = Number(ethers.formatUnits(balance, decimals));
+					console.log(`Token ${tokenAddress} Balance:`, balance);
 				}
 			} else {
 				console.error("MetaMask is not installed!");
@@ -630,7 +695,7 @@
 							<div class="input-group">
 								{#if userJettonBalance}
 									<div class="balance">
-										<label for="bmbtcAmount" class="bmbtcAmount"
+										<label for="jettonsAmount" class="bmbtcAmount"
 											>Jettons Amount
 										</label>
 
@@ -648,14 +713,36 @@
 										min="1"
 										step="1"
 										placeholder="0.0"
+										on:input={handleJettonInputChange}
 									/>
 									<span class="token">JETTON</span>
 								</div>
+								
+								<div class="input-wrapper">
+									
+									<div class="input-wrapper">
+										<input
+											id="jettonAmount"
+											type="number"
+											bind:value={equivalentBmbtc}
+											disabled
+										/>
+									</div>
+
+									<span class="token">BMBTC</span>
+								</div>
 							</div>
 
-							<button on:click={MintTokens} class="action-button mint"
-								>Mint BMBTC</button
-							>
+							{#if loadingEquivalent}
+								<button disabled class="action-button mint loading-button">
+									<span class="spinner"></span>
+									<span class="loading-text">Loading</span>
+								</button>
+							{:else}
+								<button on:click={MintTokens} class="action-button mint">
+									Mint BMBTC
+								</button>
+							{/if}
 						{:else}
 							<div class="input-group">
 								{#if bmbtcBalance}
@@ -668,22 +755,40 @@
 										</div>
 									</div>
 								{/if}
-
 								<div class="input-wrapper">
 									<input
-										id="bmbtcAmount"
+										id="jettonAmount"
 										type="number"
 										bind:value={bmBTCInputAmount}
 										min="1"
 										step="1"
 										placeholder="0.0"
+										on:input={handleBmbtcInputChange}
 									/>
 									<span class="token">BMBTC</span>
 								</div>
+								<div class="input-wrapper">
+									<input
+										id="bmbtcAmount"
+										type="number"
+										bind:value={equivalentWton}
+										min="1"
+										step="1"
+										placeholder="0.0"
+									/>
+									<span class="token">JETTONS</span>
+								</div>
 							</div>
-							<button on:click={BurnTokens} class="action-button burn"
-								>Burn BMBTC</button
-							>
+							{#if loadingEquivalent}
+							<button disabled class="action-button mint loading-button">
+								<span class="spinner"></span>
+								<span class="loading-text">Loading</span>
+							</button>
+						{:else}
+							<button on:click={BurnTokens} class="action-button mint">
+								Burn BMBTC
+							</button>
+						{/if}
 						{/if}
 						{#if status}
 							<pre class="status-display">{status}</pre>
@@ -869,6 +974,7 @@
 
 	.input-wrapper {
 		position: relative;
+		margin-top: 30px;
 	}
 
 	input[type="number"] {
@@ -880,12 +986,6 @@
 		border-radius: 6px;
 		box-sizing: border-box;
 		transition: all 0.2s ease;
-	}
-
-	input[type="number"]:focus {
-		background: #3b82f6; /* Brighter, modern blue */
-		box-shadow: 0 0 6px rgba(52, 152, 219, 0.3);
-		outline: none;
 	}
 
 	.token {
@@ -954,5 +1054,35 @@
 
 	.bmbtcbalance {
 		margin-left: auto; /* Pushes it to the right */
+	}
+	.loading-button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px; /* Space between spinner and text */
+	}
+
+	.spinner {
+		width: 16px; /* Slightly smaller for better alignment */
+		height: 16px;
+		border: 3px solid rgba(0, 0, 0, 0.1);
+		border-top-color: #1f05b1;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+	}
+
+	.loading-text {
+		font-size: 1rem;
+		font-weight: 600;
+		color: #ffffff;
+	}
+
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 </style>
