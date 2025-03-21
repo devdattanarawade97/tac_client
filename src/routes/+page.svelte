@@ -7,8 +7,9 @@
 	import * as ethers from "ethers";
 	import addresses from "../addresses.json";
 	import treasureySwapABI from "../abi/treasureySwapABI.json";
+	import { toNano, TonClient } from "@ton/ton";
+	import tokensJson from "../tokens/tokens.json";
 
-    
 	import {
 		TacSdk,
 		Network,
@@ -26,15 +27,21 @@
 		PUBLIC_TREASURE_SWAP_ADDRESS,
 		PUBLIC_TREASURE_SWAP_PROXY,
 		PUBLIC_TON_ADDRESS,
-		PUBLIC_BMBTC_TOKEN,
+		PUBLIC_BMBTC_TOKEN_ADDRESS,
 	} from "$env/static/public";
 
-	console.log("PUBLIC BMBTC ADDRESS : ", PUBLIC_BMBTC_TOKEN);
+	import { getTONBalance } from "../helper/getTonBalance";
+
+	import { validateAmount } from "../helper/validateAmount";
+	console.log("PUBLIC BMBTC ADDRESS : ", PUBLIC_BMBTC_TOKEN_ADDRESS);
 	//log all env
 	console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
 	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
 	console.log("PUBLIC_WTON_TOKEN_ADDRESS :", PUBLIC_WTON_TOKEN_ADDRESS);
-
+	/**
+	 * @type {string | undefined}
+	 */
+	let userTonWalletAddress;
 	/**
 	 * @type {string}
 	 */
@@ -42,7 +49,7 @@
 	/**
 	 * @type {TacSdk}
 	 */
-	
+
 	let tac_sdk;
 	/**
 	 * @type {import("tac-sdk").SenderAbstraction}
@@ -54,7 +61,7 @@
 	 * @type {number}
 	 */
 	let userJettonBalance;
-	let userTonWalletAddress;
+
 	let isMetaMaskConnected = false;
 	/**
 	 * @type {{ request: (arg0: { method: string; params?: never[]; }) => any; } | null}
@@ -81,7 +88,11 @@
 	let status = "";
 	let bmbtcBalance = 0;
 	let equivalentBmbtc = 0;
-	let equivalentWton=0;
+	let equivalentWton = 0;
+	/**
+	 * @type {string}
+	 */
+	let tvmTokenAddress;
 	// Initialize TonConnect
 	onMount(async () => {
 		tonConnect = new TonConnectUI({
@@ -137,11 +148,20 @@
 		tonConnect.onStatusChange(async (wallet) => {
 			isConnected = !!wallet;
 			console.log("Wallet connection status:", isConnected);
+			userTonWalletAddress = wallet?.account.address;
+			console.log('user ton wallet address : ', userTonWalletAddress)
 			//log the token balance for connected wallet
 
 			// Initialize TacSdk
 			tac_sdk = await TacSdk.create({
 				network: Network.Testnet,
+				TONParams: {
+					contractOpener: new TonClient({
+						endpoint: "https://testnet.toncenter.com/api/v2/jsonRPC",
+						apiKey:
+							"3c3d7c4e1fcbaee7adb97e14cd4f0a225244525f60fc40e70d67128dcdc9aee8",
+					}),
+				},
 				delay: 3,
 			});
 
@@ -158,13 +178,14 @@
 
 			console.log("user ton wallet address : ", userTonWalletAddress);
 			console.log("user ton jetton balance : ", userJettonBalance);
-			evmAddressOfJetton = await tac_sdk.getEVMTokenAddress(PUBLIC_JETTON_TOKEN_ADDRESS);
-
-			console.log("evm side address of jetton : ", evmAddressOfJetton);
-			const tvmAddress = await tac_sdk.getTVMTokenAddress(
-				PUBLIC_WTON_TOKEN_ADDRESS,
+			evmAddressOfJetton = await tac_sdk.getEVMTokenAddress(
+				"NONE"
 			);
-			console.log("tvm side address of jetton : ", tvmAddress);
+            
+	
+			console.log("evm side address of jetton : ", evmAddressOfJetton);
+			tvmTokenAddress = await tac_sdk.getTVMTokenAddress(PUBLIC_WTON_TOKEN_ADDRESS)
+			console.log("tvm token address : ", tvmTokenAddress);
 		});
 
 		// @ts-ignore
@@ -192,15 +213,6 @@
 		try {
 			status = "Sending transaction...";
 
-			//log public my evm address and metaMaskAccount
-			// // Prepare the EVM proxy message
-			// const evmProxyMsg = {
-			// 	evmTargetAddress: PUBLIC_PROXY_ADDRESS,
-			// 	methodName: "",
-			// 	encodedParameters: "0x",
-			// };
-			// Create EVM payload
-			// Define TON and Jetton token info (unchanged)
 			console.log("wton token address : ", PUBLIC_WTON_TOKEN_ADDRESS);
 			const wTonInfo = {
 				tvmAddress: PUBLIC_WTON_TOKEN_ADDRESS,
@@ -217,11 +229,10 @@
 			};
 
 			// Encoding with single parameter
-			const to = metaMaskAccount;
+			const to = PUBLIC_TREASURE_SWAP_PROXY;
+
 			console.log("to address : ", to);
-			const wTONamt = 1 * Number(tokenMintInfoForWTON.mintAmount);
-			console.log("wton amount for mint : ", wTONamt);
-			const methodName = "mint(bytes,bytes)";
+			
 			//  const methodName = "mint";
 			const abi = ethers.AbiCoder.defaultAbiCoder();
 			// Encode everything into a single parameter
@@ -231,36 +242,34 @@
 			// 	["tuple(uint64,address)"], // TacHeaderV1 (queryId and tvmCaller)
 			// 	[[0n, to]]
 			// 	 );
-
+            
+	       const wTONamt = jettonInputAmount
+		
+			console.log("wton amount for mint : ", wTONamt);
+			const methodName = "mint(bytes,bytes)";
 			// console.log('tac header : ' , tacHeader)
 			// Encode MintArguments correctly as bytes
 			const mintArguments = abi.encode(
 				["tuple(address,uint256)"], // MintArguments struct (to, wTONamt)
-				[[to, wTONamt]],
+				[[to, Number(toNano(wTONamt))]],
 			);
-
-			// console.log('tac header bytes : ', tacHeader);
-			console.log("arguments bytes : ", mintArguments);
-
-			const encodedParameters = mintArguments;
-
-			console.log("encodedParameters: ", encodedParameters);
+		
 
 			// Prepare evmProxyMsg with single encoded parameter
 			const evmProxyMsg = {
 				evmTargetAddress: PUBLIC_TREASURE_SWAP_PROXY,
 				methodName: methodName,
-				encodedParameters, // Single encoded parameter containing both header and arguments
+				encodedParameters: mintArguments, // Single encoded parameter containing both header and arguments
 			};
 
-			console.log("Encoded Parameters:", encodedParameters);
 			console.log("EVM proxy message:", evmProxyMsg);
-
+			// @ts-ignore
+			sender = await SenderFactory.getSender({ tonConnect });
 			// Prepare jetton details
 			const assets = [
 				{
-					address: PUBLIC_JETTON_TOKEN_ADDRESS,
-					amount: jettonInputAmount,
+					// address: PUBLIC_JETTON_TOKEN_ADDRESS,
+					amount: Number(jettonInputAmount),
 				},
 			];
 
@@ -270,24 +279,23 @@
 				sender,
 				assets,
 			);
-
-			const tracker1 = await startTracking(transactionLinker, Network.Testnet);
-			console.log("tracker 1 log : ", tracker1);
-			// const network=Network.Testnet
-			// const tracker = new OperationTracker(Network.Testnet);
+			tac_sdk.closeConnections();
+			// const tracker1 = await startTracking(transactionLinker, Network.Testnet);
+			// console.log("tracker 1 log : ", tracker1);
+			const network = Network.Testnet;
+			const tracker = new OperationTracker(Network.Testnet);
 
 			// const operationId = await tracker.getOperationId(transactionLinker);
 			// console.log('Operation ID:', operationId);
-			// Start tracking with retry logic
+			//Start tracking with retry logic
 
-			// Track transaction once operationId is obtained
-			// const operationId=await getOperationId(transactionLinker);
-			// // @ts-ignore
-			// await trackTransaction(operationId);
+			//Track transaction once operationId is obtained
+			const operationId = await getOperationId(transactionLinker);
+			// @ts-ignore
+			await trackTransaction(operationId);
 
 			// //log tracker
 
-			tac_sdk.closeConnections();
 			// trackTransaction(tracker);
 			status = `Transaction successful! `;
 		} catch (error) {
@@ -311,6 +319,19 @@
 
 		try {
 			status = "Sending transaction...";
+			const jettonInfo = {
+				tvmAddress: PUBLIC_JETTON_TOKEN_ADDRESS,
+				name: "Jetton BTC",
+				symbol: "JBTC",
+				decimals: 9,
+				description: "TON description",
+				image: "abc",
+			};
+			const tokenMintInfoForJetton = {
+				info: jettonInfo,
+				mintAmount: 10 ** jettonInfo.decimals,
+			};
+
 			const wTonInfo = {
 				tvmAddress: PUBLIC_WTON_TOKEN_ADDRESS,
 				name: "Wrapped TON",
@@ -319,15 +340,15 @@
 				description: "WTON description",
 				image: "abc",
 			};
-
+			
 			const tokenMintInfoForWTON = {
 				info: wTonInfo,
 				mintAmount: 10 ** 9,
 			};
 
-			const amount = 1 * Number(tokenMintInfoForWTON.mintAmount);
+			
 			const bmbtcInfo = {
-				evmAdress: PUBLIC_BMBTC_TOKEN,
+				evmAdress: PUBLIC_BMBTC_TOKEN_ADDRESS,
 				name: "BIMA BTC",
 				symbol: "BMBTC",
 				decimals: 6,
@@ -341,10 +362,11 @@
 			};
 
 			// Encoding with single parameter
-			const to = metaMaskAccount;
+			const to = PUBLIC_TREASURE_SWAP_PROXY;
 			console.log("to address : ", to);
 			// @ts-ignore
-			const bmbtcAmount = 1 * Number(tokenMintInfoForBMBTC.mintAmount);
+			const bmbtcAmount = BigInt(bmBTCInputAmount * Number(tokenMintInfoForJetton.mintAmount));
+	
 			const methodName = "burn(bytes,bytes)";
 			// const methodName = "burn";
 			const abi = ethers.AbiCoder.defaultAbiCoder();
@@ -352,32 +374,28 @@
 			// Encode MintArguments correctly as bytes
 			const burnArguments = abi.encode(
 				["tuple(address,uint256)"], // MintArguments struct (to, amount)
-				[[to, amount]],
+				[[to, bmbtcAmount]],
 			);
 
 			// console.log('tac header bytes : ', tacHeader);
 			console.log("arguments bytes : ", burnArguments);
 
-			const encodedParameters = burnArguments;
-
-			console.log("encodedParameters: ", encodedParameters);
 
 			// Prepare evmProxyMsg with single encoded parameter
 			const evmProxyMsg = {
 				evmTargetAddress: PUBLIC_TREASURE_SWAP_PROXY,
 				methodName: methodName,
-				encodedParameters, // Single encoded parameter containing both header and arguments
+				encodedParameters:burnArguments, // Single encoded parameter containing both header and arguments
 			};
 
-			console.log("Encoded Parameters:", encodedParameters);
 			console.log("EVM proxy message:", evmProxyMsg);
 
 			// Prepare bmbtc asset details
 			const assets = [
 				{
-					address: PUBLIC_BMBTC_TOKEN,
-					amount: bmbtcAmount,
-				},
+					address: jettonInfo.tvmAddress,
+					amount: Number(bmbtcAmount),
+				}
 			];
 
 			// Send cross-chain transaction
@@ -388,10 +406,10 @@
 			);
 
 			// // Track transaction status
-			const tracker = await startTracking(transactionLinker, Network.Testnet);
+			// const tracker = await startTracking(transactionLinker, Network.Testnet);
 
 			// //log tracker
-			console.log("tracker :", tracker);
+			// console.log("tracker :", tracker);
 			// Track transaction once operationId is obtained
 			const operationId = await getOperationId(transactionLinker);
 			// @ts-ignore
@@ -460,7 +478,25 @@
 
 		try {
 			// @ts-ignore
+			const tonBalance = await getTONBalance(userTonWalletAddress);
+			console.log("ton balance : ", tonBalance);
+			// @ts-ignore
 			if (typeof window.ethereum !== "undefined") {
+				const validateAmt = await validateAmount(
+					false,
+					value,
+					Number(tokensJson[0].lowerBound),
+					Number(tokensJson[0].upperBound),
+					tokensJson[0].decimals,
+					Number(tokensJson[0].tokenValue),
+					// @ts-ignore
+					tonBalance,
+					userJettonBalance,
+				);
+				console.log("s : ", validateAmt.status);
+				if (validateAmt.status) {
+					console.log("input amt is valid");
+				}
 				// @ts-ignore
 				const provider = new ethers.BrowserProvider(window.ethereum);
 				const contract = new ethers.Contract(
@@ -498,9 +534,7 @@
 					provider,
 				);
 
-				equivalentWton = Number(
-					await contract.getTokenValue(bmBTCInputAmount),
-				);
+				equivalentWton = Number(await contract.getTokenValue(bmBTCInputAmount));
 				console.log("equivalent bmbtc", equivalentWton);
 				loadingEquivalent = false;
 			} else {
@@ -588,7 +622,7 @@
 			//log network id
 			console.log("networkId :", networkId);
 			bmbtcBalance = Number(
-				await getTokenBalance(metaMaskAccount, PUBLIC_BMBTC_TOKEN),
+				await getTokenBalance(metaMaskAccount, PUBLIC_BMBTC_TOKEN_ADDRESS),
 			);
 		} catch (error) {
 			console.error("Error connecting to MetaMask:", error);
@@ -599,6 +633,7 @@
 	const getTokenBalance = async (walletAddress, tokenAddress) => {
 		let formattedBalance = 0;
 		// ERC-20 balanceOf function ABI
+		console.log("bmbtc token address : ", tokenAddress);
 		const tokenABI = bmbtcABI;
 		console.log("bm btc token abi : ", tokenABI);
 		try {
@@ -717,9 +752,8 @@
 									/>
 									<span class="token">JETTON</span>
 								</div>
-								
+
 								<div class="input-wrapper">
-									
 									<div class="input-wrapper">
 										<input
 											id="jettonAmount"
@@ -780,15 +814,15 @@
 								</div>
 							</div>
 							{#if loadingEquivalent}
-							<button disabled class="action-button mint loading-button">
-								<span class="spinner"></span>
-								<span class="loading-text">Loading</span>
-							</button>
-						{:else}
-							<button on:click={BurnTokens} class="action-button mint">
-								Burn BMBTC
-							</button>
-						{/if}
+								<button disabled class="action-button mint loading-button">
+									<span class="spinner"></span>
+									<span class="loading-text">Loading</span>
+								</button>
+							{:else}
+								<button on:click={BurnTokens} class="action-button burn">
+									Burn BMBTC
+								</button>
+							{/if}
 						{/if}
 						{#if status}
 							<pre class="status-display">{status}</pre>
