@@ -22,7 +22,6 @@
 	
 
 	import {
-		PUBLIC_MY_EVM_ADDRESS,
 		PUBLIC_JETTON_TOKEN_ADDRESS,
 		PUBLIC_WTON_TOKEN_ADDRESS,
 		// @ts-ignore
@@ -36,11 +35,7 @@
 	import { getTONBalance } from "../helper/getTonBalance";
 
 	import { validateAmount } from "../helper/validateAmount";
-	console.log("PUBLIC BMBTC ADDRESS : ", PUBLIC_BMBTC_TOKEN_ADDRESS);
-	//log all env
-	console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
-	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
-	console.log("PUBLIC_WTON_TOKEN_ADDRESS :", PUBLIC_WTON_TOKEN_ADDRESS);
+
 	let tonBalance=0;
 	/**
 	 * @type {string | undefined}
