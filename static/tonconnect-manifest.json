@@ -2,6 +2,8 @@
    
     "url":"https://tac-client.vercel.app/",
     "name": "TAC Wallet",
-    "iconUrl": "http://localhost:5173/icon.png"
+    "iconUrl": "https://ibb.co/DzCJQrZ",
+	"termsOfUseUrl": "https://ton-connect.github.io/demo-dapp-with-wallet/terms-of-use.txt",
+	"privacyPolicyUrl": "https://ton-connect.github.io/demo-dapp-with-wallet/privacy-policy.txt"
   }
    
