@@ -145,8 +145,16 @@
 						bridgeUrl: "https://connect.tonhubapi.com/tonconnect",
 					},
 				],
+				
 			},
 		});
+
+		tonConnect.uiOptions = {
+			// @ts-ignore
+			// twaReturnUrl: "https://t.me/tele_block_ai_bot",
+			 twaReturnUrl: "https://tac-client.vercel.app/",
+		};
+		
          //@ts-ignore
 		tonConnect.onStatusChange(async (wallet) => {
 			isConnected = !!wallet;
