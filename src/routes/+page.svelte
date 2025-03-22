@@ -9,7 +9,7 @@
 	import treasureySwapABI from "../abi/treasureySwapABI.json";
 	import { toNano, TonClient } from "@ton/ton";
 	import tokensJson from "../tokens/tokens.json";
-
+    import {fetchJettonBalance} from '../helper/getJettonBalance';
 	import {
 		TacSdk,
 		Network,
@@ -19,7 +19,7 @@
 		// @ts-ignore
 		SimplifiedStatuses,
 	} from "tac-sdk";
-	import   AssetBridgingData  from 'tac-sdk';
+	
 
 	import {
 		PUBLIC_MY_EVM_ADDRESS,
@@ -30,6 +30,7 @@
 		PUBLIC_TREASURE_SWAP_PROXY,
 		PUBLIC_TON_ADDRESS,
 		PUBLIC_BMBTC_TOKEN_ADDRESS,
+		PUBLIC_TON_SIDE_BMBTC_BALANCE,
 	} from "$env/static/public";
 
 	import { getTONBalance } from "../helper/getTonBalance";
@@ -40,6 +41,7 @@
 	console.log("PUBLIC_MY_EVM_ADDRESS:", PUBLIC_MY_EVM_ADDRESS);
 	console.log("PUBLIC_JETTON_TOKEN_ADDRESS:", PUBLIC_JETTON_TOKEN_ADDRESS);
 	console.log("PUBLIC_WTON_TOKEN_ADDRESS :", PUBLIC_WTON_TOKEN_ADDRESS);
+	let tonBalance=0;
 	/**
 	 * @type {string | undefined}
 	 */
@@ -88,13 +90,17 @@
 	let jettonInputAmount = 1;
 	let bmBTCInputAmount = 1;
 	let status = "";
-	let bmbtcBalance = 0;
+	
 	let equivalentBmbtc = 0;
 	let equivalentWton = 0;
 	/**
 	 * @type {string}
 	 */
 	let tvmTokenAddress;
+		/**
+	 * @type {number}
+	 */
+	let userBmbtcBalance=0;
 	// Initialize TonConnect
 	onMount(async () => {
 		tonConnect = new TonConnectUI({
@@ -171,6 +177,9 @@
 			sender = await SenderFactory.getSender({ tonConnect });
 			console.log("sender :", sender);
 			userTonWalletAddress = await sender.getSenderAddress();
+				// @ts-ignore
+				tonBalance = await getTONBalance(userTonWalletAddress);
+			console.log("ton balance : ", tonBalance);
 			const balance = await tac_sdk.getUserJettonBalance(
 				userTonWalletAddress,
 				PUBLIC_JETTON_TOKEN_ADDRESS,
@@ -178,8 +187,10 @@
 
 			userJettonBalance = Number(BigInt(balance) / BigInt(10 ** 9));
 
-			console.log("user ton wallet address : ", userTonWalletAddress);
-			console.log("user ton jetton balance : ", userJettonBalance);
+			
+
+			// console.log("user ton wallet address : ", userTonWalletAddress);
+			// console.log("user ton jetton balance : ", userJettonBalance);
 			evmAddressOfJetton = await tac_sdk.getEVMTokenAddress("NONE");
 
 			console.log("evm side address of jetton : ", evmAddressOfJetton);
@@ -188,6 +199,8 @@
 				PUBLIC_BMBTC_TOKEN_ADDRESS
 			);
 			console.log("tvm token address : ", tvmTokenAddress);
+			userBmbtcBalance=await fetchJettonBalance(tac_sdk , userTonWalletAddress , tvmTokenAddress)??0
+
 		});
 
 		// @ts-ignore
@@ -446,9 +459,7 @@
 		const value = e.target.value;
 
 		try {
-			// @ts-ignore
-			const tonBalance = await getTONBalance(userTonWalletAddress);
-			console.log("ton balance : ", tonBalance);
+		
 			// @ts-ignore
 			if (typeof window.ethereum !== "undefined") {
 				const validateAmt = await validateAmount(
@@ -590,9 +601,7 @@
 			const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
 			//log network id
 			console.log("networkId :", networkId);
-			bmbtcBalance = Number(
-				await getTokenBalance(metaMaskAccount, PUBLIC_BMBTC_TOKEN_ADDRESS),
-			);
+			
 		} catch (error) {
 			console.error("Error connecting to MetaMask:", error);
 		}
@@ -654,7 +663,7 @@
 							<span class="status connected">TON Connected</span>
 						{/if}
 					</div>
-					<div class="wallet-item">
+					<!-- <div class="wallet-item">
 						<button
 							on:click={handleMetaMaskConnect}
 							class="connect-button metamask"
@@ -670,7 +679,7 @@
 								{metaMaskAccount ? `${metaMaskAccount}` : "N/A"}
 							</span>
 						{/if}
-					</div>
+					</div> -->
 				</div>
 			</div>
 
@@ -697,17 +706,7 @@
 					<div class="tab-content">
 						{#if activeTab === "mint"}
 							<div class="input-group">
-								{#if userJettonBalance}
-									<div class="balance">
-										<label for="jettonsAmount" class="bmbtcAmount"
-											>Jettons Amount
-										</label>
-
-										<div class="bmbtcbalance">
-											balance : {Number(userJettonBalance).toFixed(2)} Jettons
-										</div>
-									</div>
-								{/if}
+						
 
 								<div class="input-wrapper">
 									<input
@@ -719,9 +718,17 @@
 										placeholder="0.0"
 										on:input={handleJettonInputChange}
 									/>
-									<span class="token">JETTON</span>
+									
+									<span class="token">TON</span>
+									
 								</div>
-
+								{#if userJettonBalance}
+								<div class="balance">
+									<div class="bmbtcbalance">
+										balance : {Number(tonBalance).toFixed(2)} TON
+									</div>
+								</div>
+							{/if}
 								<div class="input-wrapper">
 									<div class="input-wrapper">
 										<input
@@ -734,6 +741,13 @@
 
 									<span class="token">BMBTC</span>
 								</div>
+								{#if userBmbtcBalance}
+								<div class="balance">
+									<div class="bmbtcbalance">
+										balance : {Number(userBmbtcBalance).toFixed(2)} BMBTC
+									</div>
+								</div>
+							{/if}
 							</div>
 
 							{#if loadingEquivalent}
@@ -748,16 +762,7 @@
 							{/if}
 						{:else}
 							<div class="input-group">
-								{#if bmbtcBalance}
-									<div class="balance">
-										<label for="bmbtcAmount" class="bmbtcAmount"
-											>BMBTC Amount
-										</label>
-										<div class="bmbtcbalance">
-											balance : {bmbtcBalance.toFixed(2)} BMBTC
-										</div>
-									</div>
-								{/if}
+						
 								<div class="input-wrapper">
 									<input
 										id="jettonAmount"
@@ -770,6 +775,13 @@
 									/>
 									<span class="token">BMBTC</span>
 								</div>
+								{#if userBmbtcBalance}
+								<div class="balance">
+									<div class="bmbtcbalance">
+										balance : {Number(userBmbtcBalance).toFixed(2)} BMBTC
+									</div>
+								</div>
+							{/if}
 								<div class="input-wrapper">
 									<input
 										id="bmbtcAmount"
@@ -779,8 +791,15 @@
 										step="1"
 										placeholder="0.0"
 									/>
-									<span class="token">JETTONS</span>
+									<span class="token">TONS</span>
 								</div>
+								{#if userJettonBalance}
+								<div class="balance">
+									<div class="bmbtcbalance">
+										balance : {Number(tonBalance).toFixed(2)} TON
+									</div>
+								</div>
+							{/if}
 							</div>
 							{#if loadingEquivalent}
 								<button disabled class="action-button mint loading-button">
@@ -1054,6 +1073,7 @@
 		display: flex;
 		flex-direction: row;
 		padding: 5px;
+		text-align: right;
 	}
 
 	.bmbtcbalance {
