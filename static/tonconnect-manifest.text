@@ -1,5 +1,5 @@
 {
-   
+   // "url": "http://localhost:5173",
     "url":"https://tac-client.vercel.app/",
     "name": "TAC Wallet",
     "iconUrl": "http://localhost:5173/icon.png"
