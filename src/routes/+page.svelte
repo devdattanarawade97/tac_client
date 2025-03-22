@@ -19,6 +19,8 @@
 		// @ts-ignore
 		SimplifiedStatuses,
 	} from "tac-sdk";
+	import   AssetBridgingData  from 'tac-sdk';
+
 	import {
 		PUBLIC_MY_EVM_ADDRESS,
 		PUBLIC_JETTON_TOKEN_ADDRESS,
@@ -144,12 +146,12 @@
 				],
 			},
 		});
-
+         //@ts-ignore
 		tonConnect.onStatusChange(async (wallet) => {
 			isConnected = !!wallet;
 			console.log("Wallet connection status:", isConnected);
 			userTonWalletAddress = wallet?.account.address;
-			console.log('user ton wallet address : ', userTonWalletAddress)
+			console.log("user ton wallet address : ", userTonWalletAddress);
 			//log the token balance for connected wallet
 
 			// Initialize TacSdk
@@ -178,13 +180,13 @@
 
 			console.log("user ton wallet address : ", userTonWalletAddress);
 			console.log("user ton jetton balance : ", userJettonBalance);
-			evmAddressOfJetton = await tac_sdk.getEVMTokenAddress(
-				"NONE"
-			);
-            
-	
+			evmAddressOfJetton = await tac_sdk.getEVMTokenAddress("NONE");
+
 			console.log("evm side address of jetton : ", evmAddressOfJetton);
-			tvmTokenAddress = await tac_sdk.getTVMTokenAddress(PUBLIC_WTON_TOKEN_ADDRESS)
+			console.log('bmbtc token address : ',PUBLIC_BMBTC_TOKEN_ADDRESS)
+			tvmTokenAddress = await tac_sdk.getTVMTokenAddress(
+				PUBLIC_BMBTC_TOKEN_ADDRESS
+			);
 			console.log("tvm token address : ", tvmTokenAddress);
 		});
 
@@ -214,37 +216,29 @@
 			status = "Sending transaction...";
 
 			console.log("wton token address : ", PUBLIC_WTON_TOKEN_ADDRESS);
-			const wTonInfo = {
-				tvmAddress: PUBLIC_WTON_TOKEN_ADDRESS,
-				name: "Wrapped TON",
-				symbol: "WTON",
+			const jettonInfo = {
+				tvmAddress: PUBLIC_JETTON_TOKEN_ADDRESS,
+				name: "Jetton BTC",
+				symbol: "JBTC",
 				decimals: 9,
-				description: "WTON description",
+				description: "TON description",
 				image: "abc",
 			};
-
-			const tokenMintInfoForWTON = {
-				info: wTonInfo,
-				mintAmount: 10 ** 9,
+			const tokenMintInfoForJetton = {
+				info: jettonInfo,
+				mintAmount: 10 ** jettonInfo.decimals,
 			};
 
 			// Encoding with single parameter
 			const to = PUBLIC_TREASURE_SWAP_PROXY;
 
 			console.log("to address : ", to);
-			
+
 			//  const methodName = "mint";
 			const abi = ethers.AbiCoder.defaultAbiCoder();
-			// Encode everything into a single parameter
-			// Including both tacHeader and arguments as a tuple
-			// Encode TAC header separately
-			// 	const tacHeader = abi.encode(
-			// 	["tuple(uint64,address)"], // TacHeaderV1 (queryId and tvmCaller)
-			// 	[[0n, to]]
-			// 	 );
-            
-	       const wTONamt = jettonInputAmount
-		
+
+			const wTONamt = jettonInputAmount;
+			//const wTONamt = BigInt(jettonInputAmount*Number(tokenMintInfoForJetton.mintAmount))
 			console.log("wton amount for mint : ", wTONamt);
 			const methodName = "mint(bytes,bytes)";
 			// console.log('tac header : ' , tacHeader)
@@ -253,7 +247,6 @@
 				["tuple(address,uint256)"], // MintArguments struct (to, wTONamt)
 				[[to, Number(toNano(wTONamt))]],
 			);
-		
 
 			// Prepare evmProxyMsg with single encoded parameter
 			const evmProxyMsg = {
@@ -319,34 +312,8 @@
 
 		try {
 			status = "Sending transaction...";
-			const jettonInfo = {
-				tvmAddress: PUBLIC_JETTON_TOKEN_ADDRESS,
-				name: "Jetton BTC",
-				symbol: "JBTC",
-				decimals: 9,
-				description: "TON description",
-				image: "abc",
-			};
-			const tokenMintInfoForJetton = {
-				info: jettonInfo,
-				mintAmount: 10 ** jettonInfo.decimals,
-			};
-
-			const wTonInfo = {
-				tvmAddress: PUBLIC_WTON_TOKEN_ADDRESS,
-				name: "Wrapped TON",
-				symbol: "WTON",
-				decimals: 9,
-				description: "WTON description",
-				image: "abc",
-			};
-			
-			const tokenMintInfoForWTON = {
-				info: wTonInfo,
-				mintAmount: 10 ** 9,
-			};
-
-			
+		
+		
 			const bmbtcInfo = {
 				evmAdress: PUBLIC_BMBTC_TOKEN_ADDRESS,
 				name: "BIMA BTC",
@@ -365,8 +332,10 @@
 			const to = PUBLIC_TREASURE_SWAP_PROXY;
 			console.log("to address : ", to);
 			// @ts-ignore
-			const bmbtcAmount = BigInt(bmBTCInputAmount * Number(tokenMintInfoForJetton.mintAmount));
-	
+			const bmbtcAmount = BigInt(
+				bmBTCInputAmount * Number(tokenMintInfoForBMBTC.mintAmount),
+			);
+
 			const methodName = "burn(bytes,bytes)";
 			// const methodName = "burn";
 			const abi = ethers.AbiCoder.defaultAbiCoder();
@@ -380,22 +349,22 @@
 			// console.log('tac header bytes : ', tacHeader);
 			console.log("arguments bytes : ", burnArguments);
 
-
 			// Prepare evmProxyMsg with single encoded parameter
 			const evmProxyMsg = {
 				evmTargetAddress: PUBLIC_TREASURE_SWAP_PROXY,
 				methodName: methodName,
-				encodedParameters:burnArguments, // Single encoded parameter containing both header and arguments
+				encodedParameters: burnArguments, // Single encoded parameter containing both header and arguments
 			};
-
+            console.log('bmbtc address : ', PUBLIC_BMBTC_TOKEN_ADDRESS)
 			console.log("EVM proxy message:", evmProxyMsg);
+	
 
 			// Prepare bmbtc asset details
-			const assets = [
+			const assets= [
 				{
-					address: jettonInfo.tvmAddress,
-					amount: Number(bmbtcAmount),
-				}
+					address: tvmTokenAddress,
+					amount: Number(bmBTCInputAmount),
+				},
 			];
 
 			// Send cross-chain transaction
@@ -634,8 +603,8 @@
 		let formattedBalance = 0;
 		// ERC-20 balanceOf function ABI
 		console.log("bmbtc token address : ", tokenAddress);
-		const tokenABI = bmbtcABI;
-		console.log("bm btc token abi : ", tokenABI);
+
+		console.log("bm btc token abi : ", bmbtcABI);
 		try {
 			console.log("wallet address : ", walletAddress);
 			console.log("token address : ", tokenAddress);
@@ -645,7 +614,7 @@
 			if (typeof window.ethereum !== "undefined") {
 				// @ts-ignore
 				const provider = new ethers.BrowserProvider(window.ethereum);
-				const contract = new ethers.Contract(tokenAddress, tokenABI, provider);
+				const contract = new ethers.Contract(tokenAddress, bmbtcABI, provider);
 
 				const balance = Number(await contract.balanceOf(walletAddress));
 				const decimals = Number(await contract.decimals());
@@ -833,6 +802,7 @@
 		</div>
 	</div>
 </main>
+
 
 <style>
 	:global(body) {
