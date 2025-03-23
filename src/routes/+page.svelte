@@ -87,6 +87,8 @@
 
 	let equivalentBmbtc = 0;
 	let equivalentWton = 0;
+	
+	let progressPercentage = 0;
 	/**
 	 * @type {string}
 	 */
@@ -179,7 +181,7 @@
 				},
 				delay: 3,
 			});
-
+            
 			// @ts-ignore
 			sender = await SenderFactory.getSender({ tonConnect });
 			console.log("sender :", sender);
@@ -211,15 +213,16 @@
 					tvmTokenAddress,
 				)) ?? 0;
 		});
-
+        
 		// @ts-ignore
-		if (typeof window.ethereum !== "undefined") {
-			// @ts-ignore
-			metaMaskWallet = window.ethereum;
-			console.log("MetaMask wallet:", metaMaskWallet);
-		} else {
-			console.log("MetaMask not installed");
-		}
+		// if (typeof window.ethereum !== "undefined") {
+		// 	// @ts-ignore
+		// 	metaMaskWallet = window.ethereum;
+		// 	console.log("MetaMask wallet:", metaMaskWallet);
+		// } else {
+		// 	console.log("MetaMask not installed");
+		// }
+		
 	});
 
 	//mint tokens
@@ -543,26 +546,33 @@
 
 				switch (opStatus.status) {
 					case "EVMMerkleMessageCollected":
-						status = "Transaction Status : EVMMerkleMessageCollected";
+						// status = "Transaction Status : EVMMerkleMessageCollected";
+						progressPercentage = 16.67; // ~1/6 of 100%
 						break;
 					case "EVMMerkleRootSet":
-						status = "Transaction Status : EVMMerkleRootSet";
+						// status = "Transaction Status : EVMMerkleRootSet";
+						progressPercentage = 33.33; // ~2/6 of 100%
 						break;
 					case "EVMMerkleMessageExecuted":
-						status = "Transaction Status : EVMMerkleMessageExecuted";
+						// status = "Transaction Status : EVMMerkleMessageExecuted";
+						progressPercentage = 50.0; // ~3/6 of 100%
 						break;
 					case "TVMMerkleMessageCollected":
-						status = "Transaction Status : TVMMerkleMessageCollected";
+						// status = "Transaction Status : TVMMerkleMessageCollected";
+						progressPercentage = 66.67; // ~4/6 of 100
 						break;
 					case "TVMMerkleRootSet":
-						status = "Transaction Status : TVMMerkleRootSet";
+						// status = "Transaction Status : TVMMerkleRootSet";
+						progressPercentage = 83.33; // ~5/6 of 100%
 						break;
 					case "TVMMerkleMessageExecuted":
-						status = "Transaction Status : successful";
+						// status = "Transaction Status : successful";
+						progressPercentage = 100.0; // 100% complete
 						break;
 
 					default:
-						status = `Transaction Status : ${opStatus.status}`;
+						// status = `Transaction Status : ${opStatus.status}`;
+						progressPercentage = 0; // Unknown status, reset to 0%
 						break;
 				}
 
@@ -585,25 +595,25 @@
 		}
 	}
 
-	const handleMetaMaskConnect = async () => {
-		if (!metaMaskWallet) return;
+	// const handleMetaMaskConnect = async () => {
+	// 	if (!metaMaskWallet) return;
 
-		try {
-			const accounts = await metaMaskWallet.request({
-				method: "eth_requestAccounts",
-			});
-			isMetaMaskConnected = true;
-			metaMaskAccount = accounts[0];
-			console.log("MetaMask account:", metaMaskAccount);
+	// 	try {
+	// 		const accounts = await metaMaskWallet.request({
+	// 			method: "eth_requestAccounts",
+	// 		});
+	// 		isMetaMaskConnected = true;
+	// 		metaMaskAccount = accounts[0];
+	// 		console.log("MetaMask account:", metaMaskAccount);
 
-			// Get the current network
-			const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
-			//log network id
-			console.log("networkId :", networkId);
-		} catch (error) {
-			console.error("Error connecting to MetaMask:", error);
-		}
-	};
+	// 		// Get the current network
+	// 		const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
+	// 		//log network id
+	// 		console.log("networkId :", networkId);
+	// 	} catch (error) {
+	// 		console.error("Error connecting to MetaMask:", error);
+	// 	}
+	// };
 
 	// @ts-ignore
 	const getTokenBalance = async (walletAddress, tokenAddress) => {
@@ -657,10 +667,9 @@
 				<div class="wallet-grid">
 					<div class="wallet-item">
 						<div class="ton-connect-container" id="ton-connect"></div>
-						{#if isConnected}
-							<span class="status connected">TON Connected</span>
-						{/if}
+					
 					</div>
+					
 					<!-- <div class="wallet-item">
 						<button
 							on:click={handleMetaMaskConnect}
@@ -806,9 +815,15 @@
 								</button>
 							{/if}
 						{/if}
-						{#if status}
-							<pre class="status-display">{status}</pre>
-						{/if}
+					      {#if progressPercentage}
+						  <div class="status-display">
+							<div class="progress-container">
+							  <div class="progress-bar" style="width: {progressPercentage}%;"></div>
+							  <span class="progress-text">{progressPercentage.toFixed(2)}%</span>
+							</div>
+							<p class="status-display">{status}</p>
+						  </div>
+						  {/if}
 					</div>
 				</div>
 			{/if}
@@ -880,20 +895,27 @@
 
 	.wallet-item {
 		flex: 1;
-		text-align: center;
+		
+		display: flex;
+  justify-content: flex-end;
+		
 	}
 
 	.ton-connect-container {
+
 		min-height: 40px;
 		margin-bottom: 8px;
+
 	}
 
 	#ton-connect {
+		
 		width: 100%;
 		max-width: 160px;
 	}
 
 	.connect-button {
+	
 		width: 100%;
 		padding: 12px;
 		font-size: 1rem;
@@ -1120,4 +1142,37 @@
 			font-size: 0.9rem;
 		}
 	}
+	.status-display {
+    margin-top: 10px;
+    padding-top: 10px;
+    background: #f5f7fa;
+    border: 1px solid #e0e5ec;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .progress-container {
+    width: 100%;
+    height: 20px;
+    background: #e0e5ec;
+    border-radius: 4px;
+    position: relative;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: #27ae60;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+
+  .progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.9rem;
+    color: #fff;
+    font-weight: 500;
+  }
 </style>
