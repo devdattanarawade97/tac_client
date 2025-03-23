@@ -764,7 +764,7 @@
 							{#if loadingEquivalent}
 								<button disabled class="action-button mint loading-button">
 									<span class="spinner"></span>
-									<span class="loading-text">Loading</span>
+									<span class="loading-text">Processing</span>
 								</button>
 							{:else}
 								<button on:click={MintTokens} class="action-button mint">
