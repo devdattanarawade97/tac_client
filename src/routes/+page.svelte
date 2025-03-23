@@ -295,6 +295,7 @@
 				assets,
 			);
 			tac_sdk.closeConnections();
+			loadingEquivalent=true;
 			// const tracker1 = await startTracking(transactionLinker, Network.Testnet);
 			// console.log("tracker 1 log : ", tracker1);
 			const network = Network.Testnet;
@@ -395,7 +396,8 @@
 				sender,
 				assets,
 			);
-
+			tac_sdk.closeConnections();
+			loadingEquivalent=true;
 			// // Track transaction status
 			// const tracker = await startTracking(transactionLinker, Network.Testnet);
 
@@ -550,7 +552,7 @@
 			while (attempts < maxAttempts) {
 				const opStatus = await tracker.getOperationStatus(operationId);
 				console.log("Each Status:", opStatus.status);
-
+                 
 				switch (opStatus.status) {
 					case "EVMMerkleMessageCollected":
 						status = "Transaction Status : EVMMerkleMessageCollected";
@@ -577,10 +579,11 @@
 				}
 
 				// Wait and retry if not in a final state
-				if (!["FinalSuccessfulState"].includes(opStatus.status)) {
+				if (!["TVMMerkleMessageExecuted"].includes(opStatus.status)) {
 					await new Promise((resolve) => setTimeout(resolve, delayMs));
 					attempts++;
 				} else {
+					loadingEquivalent=false
 					break;
 				}
 			}
