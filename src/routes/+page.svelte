@@ -487,16 +487,17 @@
 					console.log("input amt is valid");
 				}
 				// @ts-ignore
-				const provider = new ethers.BrowserProvider(window.ethereum);
-				const contract = new ethers.Contract(
-					addresses.BMBTC_Treasury,
-					treasureySwapABI,
-					provider,
-				);
+				// const provider = new ethers.BrowserProvider(window.ethereum);
+				// const contract = new ethers.Contract(
+				// 	addresses.BMBTC_Treasury,
+				// 	treasureySwapABI,
+				// 	provider,
+				// );
 
-				equivalentBmbtc = Number(
-					await contract.getTokenValue(jettonInputAmount),
-				);
+				// equivalentBmbtc = Number(
+				// 	await contract.getTokenValue(jettonInputAmount),
+				// );
+				equivalentBmbtc=Number(value)*(Number(tokensJson[0].tokenValue)/10**6).toFixed(2);
 				console.log("equivalent bmbtc", equivalentBmbtc);
 				loadingEquivalent = false;
 			} else {
@@ -567,11 +568,9 @@
 						status = "Transaction Status : TVMMerkleRootSet";
 						break;
 					case "TVMMerkleMessageExecuted":
-						status = "Transaction Status : TVMMerkleMessageExecuted";
+						status = "Transaction Status : successful";
 						break;
-					case "FinalSuccessfulState":
-						status = "Transaction Status : FinalSuccessfulState";
-						return;
+			
 					default:
 						status = `Transaction Status : ${opStatus.status}`;
 						break;
