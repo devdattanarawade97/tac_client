@@ -152,7 +152,8 @@
 		tonConnect.uiOptions = {
 			// @ts-ignore
 			// twaReturnUrl: "https://t.me/tele_block_ai_bot",
-			 twaReturnUrl: "https://tac-client.vercel.app/",
+			twaReturnUrl: "https://tac-client.vercel.app/",
+			// twaReturnUrl: "http://localhost:5173/",
 		};
 		
          //@ts-ignore
