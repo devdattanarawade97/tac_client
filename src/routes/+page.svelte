@@ -96,10 +96,15 @@
 	 * @type {number}
 	 */
 	let userBmbtcBalance=0;
+	
 	// Initialize TonConnect
 	onMount(async () => {
+		const response = await fetch('/tonconnect-manifest.json');
+		const manifestJson = await response.json();
+		const url=manifestJson.url
+		console.log('manifest url : ', url)
 		tonConnect = new TonConnectUI({
-			manifestUrl: `http://localhost:5173/tonconnect-manifest.json`,
+			manifestUrl: `${url}/tonconnect-manifest.json`,
 			buttonRootId: "ton-connect",
 			walletsListConfiguration: {
 				includeWallets: [
