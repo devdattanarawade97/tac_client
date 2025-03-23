@@ -835,289 +835,307 @@
 
 
 <style>
-	:global(body) {
-		font-family: "Inter", sans-serif;
-		margin: 0;
-		padding: 20px;
-		background: linear-gradient(135deg, #f0f2f5 0%, #e0e5ec 100%);
-		color: #2c3e50;
-		min-height: 100vh;
-	}
+	/* Base styles for body */
+body {
+  font-family: "Inter", sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0f2f5 0%, #e0e5ec 100%);
+  color: #2c3e50;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased; /* Improve font rendering in WebView */
+  box-sizing: border-box; /* Ensure padding doesn't overflow */
+}
 
-	main {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
+/* Reset for Telegram Mini App consistency */
+* {
+  box-sizing: border-box;
+}
 
-	.wallet-container {
-		width: 100%;
-		max-width: 480px;
-	}
+/* Main content alignment */
+main {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 40px); /* Account for padding */
+}
 
-	h1 {
-		font-size: 1.8rem;
-		font-weight: 700;
-		color: #34495e;
-		text-align: center;
-		padding-bottom: 10px;
-	}
+/* Wallet container */
+.wallet-container {
+  width: 100%;
+  max-width: 520px; /* Increased card size */
+}
 
-	:global(body) {
-		font-family: "Inter", sans-serif;
-		margin: 0;
-		padding: 20px;
-		background: linear-gradient(135deg, #f0f2f5 0%, #e0e5ec 100%);
-		color: #2c3e50;
-		min-height: 100vh;
-	}
+/* Heading styles */
+h1 {
+  font-size: 2rem; /* Slightly larger */
+  font-weight: 700;
+  color: #34495e;
+  text-align: center;
+  margin-bottom: 20px;
+}
 
-	main {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
+/* Card styles */
+.card {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  border: 1px solid #e0e5ec;
+}
 
-	.wallet-container {
-		width: 100%;
-		max-width: 520px; /* Increased card size */
-	}
+/* Wallet Section */
+.wallet-section {
+  margin-bottom: 20px;
+}
 
-	h1 {
-		font-size: 2rem; /* Slightly larger */
-		font-weight: 700;
-		color: #34495e;
-		text-align: center;
-		margin-bottom: 20px;
-	}
+.wallet-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
 
-	.card {
-		width: 100%;
-		background: #ffffff;
-		border-radius: 16px;
-		box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08); /* Enhanced shadow */
-		padding: 24px; /* Slightly more padding */
-		border: 1px solid #e0e5ec;
-	}
+.wallet-item {
+  flex: 1;
+  text-align: center;
+}
 
-	/* Wallet Section */
-	.wallet-section {
-		margin-bottom: 20px;
-	}
+.ton-connect-container {
+  min-height: 40px;
+  margin-bottom: 8px;
+}
 
-	.wallet-grid {
-		display: flex;
-		justify-content: space-between;
-		gap: 15px;
-	}
+#ton-connect {
+  width: 100%;
+  max-width: 160px;
+}
 
-	.wallet-item {
-		flex: 1;
-		text-align: center;
-	}
+.connect-button {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-	.ton-connect-container {
-		min-height: 40px;
-		margin-bottom: 8px;
-	}
+.metamask {
+  background: #3b82f6;
+}
 
-	:global(#ton-connect) {
-		width: 100%;
-		max-width: 160px;
-	}
+.metamask:hover {
+  background: #2563eb; /* Darker shade for hover */
+}
 
-	.connect-button {
-		width: 100%;
-		padding: 12px; /* Slightly larger */
-		font-size: 1rem; /* Increased font size */
-		font-weight: 600;
-		color: #fff;
-		border: none;
-		border-radius: 8px;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
+.status {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
 
-	.metamask {
-		background: #3b82f6; /* Brighter, modern blue */
-	}
+.status.connected {
+  color: #27ae60;
+}
 
-	.metamask:hover {
-		background: #3b82f6; /* Brighter, modern blue */
-	}
+/* Operations Section */
+.operations-section {
+  padding-top: 15px;
+  border-top: 1px solid #e0e5ec;
+}
 
-	.status {
-		display: block;
-		font-size: 0.85rem;
-		margin-top: 6px;
-	}
+.tab-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
 
-	.status.connected {
-		color: #27ae60;
-	}
+.tab {
+  flex: 1;
+  padding: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #7f8c8d;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-	/* Operations Section */
-	.operations-section {
-		padding-top: 15px;
-		border-top: 1px solid #e0e5ec;
-	}
+.tab.active {
+  background: #3b82f6;
+  color: #fff;
+}
 
-	.tab-bar {
-		display: flex;
-		gap: 10px;
-		margin-bottom: 15px;
-	}
+.tab:hover:not(.active) {
+  background: #e0e5ec;
+}
 
-	.tab {
-		flex: 1;
-		padding: 8px;
-		font-size: 1rem; /* Increased font size */
-		font-weight: 500;
-		color: #7f8c8d;
-		background: #f5f7fa;
-		border: none;
-		border-radius: 6px;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
+.tab-content {
+  transition: all 0.3s ease;
+}
 
-	.tab.active {
-		background: #3b82f6; /* Brighter, modern blue */
-		color: #fff;
-	}
+.input-group {
+  margin-bottom: 15px;
+}
 
-	.tab:hover:not(.active) {
-		background: #e0e5ec;
-	}
+label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #34495e;
+  margin-bottom: 6px;
+}
 
-	.tab-content {
-		transition: all 0.3s ease;
-	}
+.input-wrapper {
+  position: relative;
+  margin-top: 30px;
+}
 
-	.input-group {
-		margin-bottom: 15px;
-	}
+input[type="number"] {
+  width: 100%;
+  padding: 12px 60px 12px 14px;
+  font-size: 1rem;
+  color: #2c3e50;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  -webkit-appearance: none; /* Remove default number input arrows in WebView */
+  appearance: none;
+}
 
-	label {
-		display: block;
-		font-size: 0.9rem; /* Slightly increased */
-		font-weight: 500;
-		color: #34495e;
-		margin-bottom: 6px;
-	}
+.token {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  background: #e0e5ec;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
 
-	.input-wrapper {
-		position: relative;
-		margin-top: 30px;
-	}
+.action-button {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-	input[type="number"] {
-		width: 100%;
-		padding: 12px 60px 12px 14px; /* Increased padding */
-		font-size: 1rem; /* Increased */
-		color: #2c3e50;
-		border: 1px solid #d0d7de;
-		border-radius: 6px;
-		box-sizing: border-box;
-		transition: all 0.2s ease;
-	}
+.mint {
+  background: #2ecc71;
+}
 
-	.token {
-		position: absolute;
-		right: 10px;
-		top: 50%;
-		transform: translateY(-50%);
-		font-size: 0.85rem;
-		font-weight: 600;
-		color: #7f8c8d;
-		background: #e0e5ec;
-		padding: 3px 8px;
-		border-radius: 4px;
-	}
+.mint:hover {
+  background: #27ae60;
+  transform: translateY(-1px);
+}
 
-	.action-button {
-		width: 100%;
-		padding: 14px; /* Slightly bigger */
-		font-size: 1rem; /* Increased */
-		font-weight: 600;
-		color: #fff;
-		border: none;
-		border-radius: 8px;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
+.burn {
+  background: #e74c3c;
+}
 
-	.mint {
-		background: #2ecc71; /* Brighter green */
-	}
+.burn:hover {
+  background: #c0392b;
+  transform: translateY(-1px);
+}
 
-	.mint:hover {
-		background: #27ae60;
-		transform: translateY(-1px);
-	}
+.status-display {
+  margin-top: 15px;
+  padding: 12px;
+  background: #f5f7fa;
+  border: 1px solid #e0e5ec;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #34495e;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
 
-	.burn {
-		background: #e74c3c;
-	}
+.balance {
+  color: #27ae60;
+  font-size: 1rem;
+  font-weight: bold;
+  display: flex;
+  flex-direction: row;
+  padding: 5px;
+  text-align: right;
+}
 
-	.burn:hover {
-		background: #c0392b;
-		transform: translateY(-1px);
-	}
+.bmbtcbalance {
+  margin-left: auto;
+}
 
-	.status-display {
-		margin-top: 15px;
-		padding: 12px; /* Increased padding */
-		background: #f5f7fa;
-		border: 1px solid #e0e5ec;
-		border-radius: 6px;
-		font-size: 0.9rem; /* Slightly increased */
-		color: #34495e;
-		white-space: pre-wrap;
-		word-wrap: break-word;
-	}
+.loading-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
 
-	.balance {
-		color: #27ae60;
-		font-size: 1rem; /* Slightly bigger */
-		font-weight: bold;
-		display: flex;
-		flex-direction: row;
-		padding: 5px;
-		text-align: right;
-	}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #1f05b1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
 
-	.bmbtcbalance {
-		margin-left: auto; /* Pushes it to the right */
-	}
-	.loading-button {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 8px; /* Space between spinner and text */
-	}
+.loading-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+}
 
-	.spinner {
-		width: 16px; /* Slightly smaller for better alignment */
-		height: 16px;
-		border: 3px solid rgba(0, 0, 0, 0.1);
-		border-top-color: #1f05b1;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-	.loading-text {
-		font-size: 1rem;
-		font-weight: 600;
-		color: #ffffff;
-	}
+/* Media query for smaller screens (Telegram Mini App compatibility) */
+@media (max-width: 480px) {
+  body {
+    padding: 10px;
+  }
 
-	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .wallet-container {
+    max-width: 100%;
+  }
+
+  .wallet-grid {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .connect-button {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .action-button {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+}
 </style>
