@@ -1,6 +1,6 @@
 {
    
-    "url":"https://tac-client.vercel.app//tonconnect-manifest.json",
+    "url":"https://tac-client.vercel.app/tonconnect-manifest.json",
     "name": "TAC Wallet",
     "iconUrl": "https://ibb.co/DzCJQrZ",
 	"termsOfUseUrl": "https://ton-connect.github.io/demo-dapp-with-wallet/terms-of-use.txt",
