@@ -9,7 +9,7 @@
 	import treasureySwapABI from "../abi/treasureySwapABI.json";
 	import { toNano, TonClient } from "@ton/ton";
 	import tokensJson from "../tokens/tokens.json";
-    import {fetchJettonBalance} from '../helper/getJettonBalance';
+	import { fetchJettonBalance } from "../helper/getJettonBalance";
 	import {
 		TacSdk,
 		Network,
@@ -19,7 +19,6 @@
 		// @ts-ignore
 		SimplifiedStatuses,
 	} from "tac-sdk";
-	
 
 	import {
 		PUBLIC_JETTON_TOKEN_ADDRESS,
@@ -36,7 +35,7 @@
 
 	import { validateAmount } from "../helper/validateAmount";
 
-	let tonBalance=0;
+	let tonBalance = 0;
 	/**
 	 * @type {string | undefined}
 	 */
@@ -85,24 +84,24 @@
 	let jettonInputAmount = 0;
 	let bmBTCInputAmount = 0;
 	let status = "";
-	
+
 	let equivalentBmbtc = 0;
 	let equivalentWton = 0;
 	/**
 	 * @type {string}
 	 */
 	let tvmTokenAddress;
-		/**
+	/**
 	 * @type {number}
 	 */
-	let userBmbtcBalance=0;
-	
+	let userBmbtcBalance = 0;
+
 	// Initialize TonConnect
 	onMount(async () => {
-		const response = await fetch('/tonconnect-manifest.json');
+		const response = await fetch("/tonconnect-manifest.json");
 		const manifestJson = await response.json();
-		const url=manifestJson.url
-		console.log('manifest url : ', url)
+		const url = manifestJson.url;
+		console.log("manifest url : ", url);
 		tonConnect = new TonConnectUI({
 			manifestUrl: `${url}/tonconnect-manifest.json`,
 			buttonRootId: "ton-connect",
@@ -150,7 +149,6 @@
 						bridgeUrl: "https://connect.tonhubapi.com/tonconnect",
 					},
 				],
-				
 			},
 		});
 
@@ -160,8 +158,8 @@
 			twaReturnUrl: "https://tac-client.vercel.app/",
 			// twaReturnUrl: "http://localhost:5173/",
 		};
-		
-         //@ts-ignore
+
+		//@ts-ignore
 		tonConnect.onStatusChange(async (wallet) => {
 			isConnected = !!wallet;
 			console.log("Wallet connection status:", isConnected);
@@ -186,8 +184,8 @@
 			sender = await SenderFactory.getSender({ tonConnect });
 			console.log("sender :", sender);
 			userTonWalletAddress = await sender.getSenderAddress();
-				// @ts-ignore
-				tonBalance = await getTONBalance(userTonWalletAddress);
+			// @ts-ignore
+			tonBalance = await getTONBalance(userTonWalletAddress);
 			console.log("ton balance : ", tonBalance);
 			const balance = await tac_sdk.getUserJettonBalance(
 				userTonWalletAddress,
@@ -196,20 +194,22 @@
 
 			userJettonBalance = Number(BigInt(balance) / BigInt(10 ** 9));
 
-			
-
 			// console.log("user ton wallet address : ", userTonWalletAddress);
 			// console.log("user ton jetton balance : ", userJettonBalance);
 			evmAddressOfJetton = await tac_sdk.getEVMTokenAddress("NONE");
 
 			console.log("evm side address of jetton : ", evmAddressOfJetton);
-			console.log('bmbtc token address : ',PUBLIC_BMBTC_TOKEN_ADDRESS)
+			console.log("bmbtc token address : ", PUBLIC_BMBTC_TOKEN_ADDRESS);
 			tvmTokenAddress = await tac_sdk.getTVMTokenAddress(
-				PUBLIC_BMBTC_TOKEN_ADDRESS
+				PUBLIC_BMBTC_TOKEN_ADDRESS,
 			);
 			console.log("tvm token address : ", tvmTokenAddress);
-			userBmbtcBalance=await fetchJettonBalance(tac_sdk , userTonWalletAddress , tvmTokenAddress)??0
-
+			userBmbtcBalance =
+				(await fetchJettonBalance(
+					tac_sdk,
+					userTonWalletAddress,
+					tvmTokenAddress,
+				)) ?? 0;
 		});
 
 		// @ts-ignore
@@ -295,7 +295,7 @@
 				assets,
 			);
 			tac_sdk.closeConnections();
-			loadingEquivalent=true;
+			loadingEquivalent = true;
 			// const tracker1 = await startTracking(transactionLinker, Network.Testnet);
 			// console.log("tracker 1 log : ", tracker1);
 			const network = Network.Testnet;
@@ -335,8 +335,7 @@
 
 		try {
 			status = "Sending transaction...";
-		
-		
+
 			const bmbtcInfo = {
 				evmAdress: PUBLIC_BMBTC_TOKEN_ADDRESS,
 				name: "BIMA BTC",
@@ -378,12 +377,11 @@
 				methodName: methodName,
 				encodedParameters: burnArguments, // Single encoded parameter containing both header and arguments
 			};
-            console.log('bmbtc address : ', PUBLIC_BMBTC_TOKEN_ADDRESS)
+			console.log("bmbtc address : ", PUBLIC_BMBTC_TOKEN_ADDRESS);
 			console.log("EVM proxy message:", evmProxyMsg);
-	
 
 			// Prepare bmbtc asset details
-			const assets= [
+			const assets = [
 				{
 					address: tvmTokenAddress,
 					amount: Number(bmBTCInputAmount),
@@ -397,7 +395,7 @@
 				assets,
 			);
 			tac_sdk.closeConnections();
-			loadingEquivalent=true;
+			loadingEquivalent = true;
 			// // Track transaction status
 			// const tracker = await startTracking(transactionLinker, Network.Testnet);
 
@@ -470,41 +468,42 @@
 		const value = e.target.value;
 
 		try {
-		
-			// @ts-ignore
-			if (typeof window.ethereum !== "undefined") {
-				const validateAmt = await validateAmount(
-					false,
-					value,
-					Number(tokensJson[0].lowerBound),
-					Number(tokensJson[0].upperBound),
-					tokensJson[0].decimals,
-					Number(tokensJson[0].tokenValue),
-					// @ts-ignore
-					tonBalance,
-					userJettonBalance,
-				);
-				console.log("s : ", validateAmt.status);
-				if (validateAmt.status) {
-					console.log("input amt is valid");
-				}
+			const validateAmt = await validateAmount(
+				false,
+				value,
+				Number(tokensJson[0].lowerBound),
+				Number(tokensJson[0].upperBound),
+				tokensJson[0].decimals,
+				Number(tokensJson[0].tokenValue),
 				// @ts-ignore
-				// const provider = new ethers.BrowserProvider(window.ethereum);
-				// const contract = new ethers.Contract(
-				// 	addresses.BMBTC_Treasury,
-				// 	treasureySwapABI,
-				// 	provider,
-				// );
-
-				// equivalentBmbtc = Number(
-				// 	await contract.getTokenValue(jettonInputAmount),
-				// );
-				equivalentBmbtc=Number(value)*(Number(tokensJson[0].tokenValue)/10**6).toFixed(2);
-				console.log("equivalent bmbtc", equivalentBmbtc);
-				loadingEquivalent = false;
-			} else {
-				console.error("MetaMask is not installed!");
+				tonBalance,
+				userJettonBalance,
+			);
+			console.log("s : ", validateAmt.status);
+			if (validateAmt.status) {
+				console.log("input amt is valid");
 			}
+			// @ts-ignore
+			// const provider = new ethers.BrowserProvider(window.ethereum);
+			// const contract = new ethers.Contract(
+			// 	addresses.BMBTC_Treasury,
+			// 	treasureySwapABI,
+			// 	provider,
+			// );
+
+			// equivalentBmbtc = Number(
+			// 	await contract.getTokenValue(jettonInputAmount),
+			// );
+			equivalentBmbtc =
+				(Number(value) * (Number(tokensJson[0].tokenValue) )/ 10 ** 6).toFixed(2);
+			console.log("equivalent bmbtc", equivalentBmbtc);
+			loadingEquivalent = false;
+			// @ts-ignore
+			// if (typeof window.ethereum !== "undefined") {
+
+			// } else {
+			// 	console.error("MetaMask is not installed!");
+			// }
 		} catch (error) {
 			console.log("error while fetching equivalent bmbtc for TON", value);
 		}
@@ -517,21 +516,10 @@
 
 		try {
 			// @ts-ignore
-			if (typeof window.ethereum !== "undefined") {
-				// @ts-ignore
-				const provider = new ethers.BrowserProvider(window.ethereum);
-				const contract = new ethers.Contract(
-					addresses.BMBTC_Treasury,
-					treasureySwapABI,
-					provider,
-				);
-
-				equivalentWton = Number(await contract.getTokenValue(bmBTCInputAmount));
-				console.log("equivalent bmbtc", equivalentWton);
-				loadingEquivalent = false;
-			} else {
-				console.error("MetaMask is not installed!");
-			}
+			equivalentWton =
+				((Number(value) * 10 ** 6) / Number(tokensJson[0].tokenValue)).toFixed(2);
+			console.log("equivalent bmbtc", equivalentWton);
+			loadingEquivalent =false;
 		} catch (error) {
 			console.log("error while fetching equivalent bmbtc for TON", value);
 		}
@@ -552,7 +540,7 @@
 			while (attempts < maxAttempts) {
 				const opStatus = await tracker.getOperationStatus(operationId);
 				console.log("Each Status:", opStatus.status);
-                 
+
 				switch (opStatus.status) {
 					case "EVMMerkleMessageCollected":
 						status = "Transaction Status : EVMMerkleMessageCollected";
@@ -572,7 +560,7 @@
 					case "TVMMerkleMessageExecuted":
 						status = "Transaction Status : successful";
 						break;
-			
+
 					default:
 						status = `Transaction Status : ${opStatus.status}`;
 						break;
@@ -583,7 +571,7 @@
 					await new Promise((resolve) => setTimeout(resolve, delayMs));
 					attempts++;
 				} else {
-					loadingEquivalent=false
+					loadingEquivalent = false;
 					break;
 				}
 			}
@@ -612,7 +600,6 @@
 			const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
 			//log network id
 			console.log("networkId :", networkId);
-			
 		} catch (error) {
 			console.error("Error connecting to MetaMask:", error);
 		}
@@ -717,8 +704,6 @@
 					<div class="tab-content">
 						{#if activeTab === "mint"}
 							<div class="input-group">
-						
-
 								<div class="input-wrapper">
 									<input
 										id="jettonAmount"
@@ -729,17 +714,16 @@
 										placeholder="0.0"
 										on:input={handleJettonInputChange}
 									/>
-									
+
 									<span class="token">TON</span>
-									
 								</div>
 								{#if userJettonBalance}
-								<div class="balance">
-									<div class="bmbtcbalance">
-										balance : {Number(tonBalance).toFixed(2)} TON
+									<div class="balance">
+										<div class="bmbtcbalance">
+											balance : {Number(tonBalance).toFixed(2)} TON
+										</div>
 									</div>
-								</div>
-							{/if}
+								{/if}
 								<div class="input-wrapper">
 									<div class="input-wrapper">
 										<input
@@ -753,12 +737,12 @@
 									<span class="token">BMBTC</span>
 								</div>
 								{#if userBmbtcBalance}
-								<div class="balance">
-									<div class="bmbtcbalance">
-										balance : {Number(userBmbtcBalance).toFixed(2)} BMBTC
+									<div class="balance">
+										<div class="bmbtcbalance">
+											balance : {Number(userBmbtcBalance).toFixed(2)} BMBTC
+										</div>
 									</div>
-								</div>
-							{/if}
+								{/if}
 							</div>
 
 							{#if loadingEquivalent}
@@ -773,7 +757,6 @@
 							{/if}
 						{:else}
 							<div class="input-group">
-						
 								<div class="input-wrapper">
 									<input
 										id="jettonAmount"
@@ -787,12 +770,12 @@
 									<span class="token">BMBTC</span>
 								</div>
 								{#if userBmbtcBalance}
-								<div class="balance">
-									<div class="bmbtcbalance">
-										balance : {Number(userBmbtcBalance).toFixed(2)} BMBTC
+									<div class="balance">
+										<div class="bmbtcbalance">
+											balance : {Number(userBmbtcBalance).toFixed(2)} BMBTC
+										</div>
 									</div>
-								</div>
-							{/if}
+								{/if}
 								<div class="input-wrapper">
 									<input
 										id="bmbtcAmount"
@@ -805,12 +788,12 @@
 									<span class="token">TONS</span>
 								</div>
 								{#if userJettonBalance}
-								<div class="balance">
-									<div class="bmbtcbalance">
-										balance : {Number(tonBalance).toFixed(2)} TON
+									<div class="balance">
+										<div class="bmbtcbalance">
+											balance : {Number(tonBalance).toFixed(2)} TON
+										</div>
 									</div>
-								</div>
-							{/if}
+								{/if}
 							</div>
 							{#if loadingEquivalent}
 								<button disabled class="action-button mint loading-button">
@@ -833,309 +816,308 @@
 	</div>
 </main>
 
-
 <style>
 	/* Base styles for body */
-body {
-  font-family: "Inter", sans-serif;
-  margin: 0;
-  padding: 20px;
-  background: linear-gradient(135deg, #f0f2f5 0%, #e0e5ec 100%);
-  color: #2c3e50;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased; /* Improve font rendering in WebView */
-  box-sizing: border-box; /* Ensure padding doesn't overflow */
-}
+	body {
+		font-family: "Inter", sans-serif;
+		margin: 0;
+		padding: 20px;
+		background: linear-gradient(135deg, #f0f2f5 0%, #e0e5ec 100%);
+		color: #2c3e50;
+		min-height: 100vh;
+		-webkit-font-smoothing: antialiased; /* Improve font rendering in WebView */
+		box-sizing: border-box; /* Ensure padding doesn't overflow */
+	}
 
-/* Reset for Telegram Mini App consistency */
-* {
-  box-sizing: border-box;
-}
+	/* Reset for Telegram Mini App consistency */
+	* {
+		box-sizing: border-box;
+	}
 
-/* Main content alignment */
-main {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: calc(100vh - 40px); /* Account for padding */
-}
+	/* Main content alignment */
+	main {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		min-height: calc(100vh - 40px); /* Account for padding */
+	}
 
-/* Wallet container */
-.wallet-container {
-  width: 100%;
-  max-width: 520px; /* Increased card size */
-}
+	/* Wallet container */
+	.wallet-container {
+		width: 100%;
+		max-width: 520px; /* Increased card size */
+	}
 
-/* Heading styles */
-h1 {
-  font-size: 2rem; /* Slightly larger */
-  font-weight: 700;
-  color: #34495e;
-  text-align: center;
-  margin-bottom: 20px;
-}
+	/* Heading styles */
+	h1 {
+		font-size: 2rem; /* Slightly larger */
+		font-weight: 700;
+		color: #34495e;
+		text-align: center;
+		margin-bottom: 20px;
+	}
 
-/* Card styles */
-.card {
-  width: 100%;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-  padding: 24px;
-  border: 1px solid #e0e5ec;
-}
+	/* Card styles */
+	.card {
+		width: 100%;
+		background: #ffffff;
+		border-radius: 16px;
+		box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+		padding: 24px;
+		border: 1px solid #e0e5ec;
+	}
 
-/* Wallet Section */
-.wallet-section {
-  margin-bottom: 20px;
-}
+	/* Wallet Section */
+	.wallet-section {
+		margin-bottom: 20px;
+	}
 
-.wallet-grid {
-  display: flex;
-  justify-content: space-between;
-  gap: 15px;
-}
+	.wallet-grid {
+		display: flex;
+		justify-content: space-between;
+		gap: 15px;
+	}
 
-.wallet-item {
-  flex: 1;
-  text-align: center;
-}
+	.wallet-item {
+		flex: 1;
+		text-align: center;
+	}
 
-.ton-connect-container {
-  min-height: 40px;
-  margin-bottom: 8px;
-}
+	.ton-connect-container {
+		min-height: 40px;
+		margin-bottom: 8px;
+	}
 
-#ton-connect {
-  width: 100%;
-  max-width: 160px;
-}
+	#ton-connect {
+		width: 100%;
+		max-width: 160px;
+	}
 
-.connect-button {
-  width: 100%;
-  padding: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+	.connect-button {
+		width: 100%;
+		padding: 12px;
+		font-size: 1rem;
+		font-weight: 600;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
 
-.metamask {
-  background: #3b82f6;
-}
+	.metamask {
+		background: #3b82f6;
+	}
 
-.metamask:hover {
-  background: #2563eb; /* Darker shade for hover */
-}
+	.metamask:hover {
+		background: #2563eb; /* Darker shade for hover */
+	}
 
-.status {
-  display: block;
-  font-size: 0.85rem;
-  margin-top: 6px;
-}
+	.status {
+		display: block;
+		font-size: 0.85rem;
+		margin-top: 6px;
+	}
 
-.status.connected {
-  color: #27ae60;
-}
+	.status.connected {
+		color: #27ae60;
+	}
 
-/* Operations Section */
-.operations-section {
-  padding-top: 15px;
-  border-top: 1px solid #e0e5ec;
-}
+	/* Operations Section */
+	.operations-section {
+		padding-top: 15px;
+		border-top: 1px solid #e0e5ec;
+	}
 
-.tab-bar {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-}
+	.tab-bar {
+		display: flex;
+		gap: 10px;
+		margin-bottom: 15px;
+	}
 
-.tab {
-  flex: 1;
-  padding: 8px;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #7f8c8d;
-  background: #f5f7fa;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+	.tab {
+		flex: 1;
+		padding: 8px;
+		font-size: 1rem;
+		font-weight: 500;
+		color: #7f8c8d;
+		background: #f5f7fa;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
 
-.tab.active {
-  background: #3b82f6;
-  color: #fff;
-}
+	.tab.active {
+		background: #3b82f6;
+		color: #fff;
+	}
 
-.tab:hover:not(.active) {
-  background: #e0e5ec;
-}
+	.tab:hover:not(.active) {
+		background: #e0e5ec;
+	}
 
-.tab-content {
-  transition: all 0.3s ease;
-}
+	.tab-content {
+		transition: all 0.3s ease;
+	}
 
-.input-group {
-  margin-bottom: 15px;
-}
+	.input-group {
+		margin-bottom: 15px;
+	}
 
-label {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #34495e;
-  margin-bottom: 6px;
-}
+	label {
+		display: block;
+		font-size: 0.9rem;
+		font-weight: 500;
+		color: #34495e;
+		margin-bottom: 6px;
+	}
 
-.input-wrapper {
-  position: relative;
-  margin-top: 30px;
-}
+	.input-wrapper {
+		position: relative;
+		margin-top: 30px;
+	}
 
-input[type="number"] {
-  width: 100%;
-  padding: 12px 60px 12px 14px;
-  font-size: 1rem;
-  color: #2c3e50;
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-  -webkit-appearance: none; /* Remove default number input arrows in WebView */
-  appearance: none;
-}
+	input[type="number"] {
+		width: 100%;
+		padding: 12px 60px 12px 14px;
+		font-size: 1rem;
+		color: #2c3e50;
+		border: 1px solid #d0d7de;
+		border-radius: 6px;
+		box-sizing: border-box;
+		transition: all 0.2s ease;
+		-webkit-appearance: none; /* Remove default number input arrows in WebView */
+		appearance: none;
+	}
 
-.token {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #7f8c8d;
-  background: #e0e5ec;
-  padding: 3px 8px;
-  border-radius: 4px;
-}
+	.token {
+		position: absolute;
+		right: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: #7f8c8d;
+		background: #e0e5ec;
+		padding: 3px 8px;
+		border-radius: 4px;
+	}
 
-.action-button {
-  width: 100%;
-  padding: 14px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+	.action-button {
+		width: 100%;
+		padding: 14px;
+		font-size: 1rem;
+		font-weight: 600;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
 
-.mint {
-  background: #2ecc71;
-}
+	.mint {
+		background: #2ecc71;
+	}
 
-.mint:hover {
-  background: #27ae60;
-  transform: translateY(-1px);
-}
+	.mint:hover {
+		background: #27ae60;
+		transform: translateY(-1px);
+	}
 
-.burn {
-  background: #e74c3c;
-}
+	.burn {
+		background: #e74c3c;
+	}
 
-.burn:hover {
-  background: #c0392b;
-  transform: translateY(-1px);
-}
+	.burn:hover {
+		background: #c0392b;
+		transform: translateY(-1px);
+	}
 
-.status-display {
-  margin-top: 15px;
-  padding: 12px;
-  background: #f5f7fa;
-  border: 1px solid #e0e5ec;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  color: #34495e;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
+	.status-display {
+		margin-top: 15px;
+		padding: 12px;
+		background: #f5f7fa;
+		border: 1px solid #e0e5ec;
+		border-radius: 6px;
+		font-size: 0.9rem;
+		color: #34495e;
+		white-space: pre-wrap;
+		word-wrap: break-word;
+	}
 
-.balance {
-  color: #27ae60;
-  font-size: 1rem;
-  font-weight: bold;
-  display: flex;
-  flex-direction: row;
-  padding: 5px;
-  text-align: right;
-}
+	.balance {
+		color: #27ae60;
+		font-size: 1rem;
+		font-weight: bold;
+		display: flex;
+		flex-direction: row;
+		padding: 5px;
+		text-align: right;
+	}
 
-.bmbtcbalance {
-  margin-left: auto;
-}
+	.bmbtcbalance {
+		margin-left: auto;
+	}
 
-.loading-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
+	.loading-button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+	}
 
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 3px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #1f05b1;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
+	.spinner {
+		width: 16px;
+		height: 16px;
+		border: 3px solid rgba(0, 0, 0, 0.1);
+		border-top-color: #1f05b1;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+	}
 
-.loading-text {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
-}
+	.loading-text {
+		font-size: 1rem;
+		font-weight: 600;
+		color: #ffffff;
+	}
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
 
-/* Media query for smaller screens (Telegram Mini App compatibility) */
-@media (max-width: 480px) {
-  body {
-    padding: 10px;
-  }
+	/* Media query for smaller screens (Telegram Mini App compatibility) */
+	@media (max-width: 480px) {
+		body {
+			padding: 10px;
+		}
 
-  h1 {
-    font-size: 1.5rem;
-  }
+		h1 {
+			font-size: 1.5rem;
+		}
 
-  .wallet-container {
-    max-width: 100%;
-  }
+		.wallet-container {
+			max-width: 100%;
+		}
 
-  .wallet-grid {
-    flex-direction: column;
-    gap: 10px;
-  }
+		.wallet-grid {
+			flex-direction: column;
+			gap: 10px;
+		}
 
-  .connect-button {
-    padding: 10px;
-    font-size: 0.9rem;
-  }
+		.connect-button {
+			padding: 10px;
+			font-size: 0.9rem;
+		}
 
-  .action-button {
-    padding: 12px;
-    font-size: 0.9rem;
-  }
-}
+		.action-button {
+			padding: 12px;
+			font-size: 0.9rem;
+		}
+	}
 </style>
