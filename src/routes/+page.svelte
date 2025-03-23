@@ -83,7 +83,7 @@
 	let tonConnect = null;
 
 	let jettonInputAmount = 0;
-	let bmBTCInputAmount = 1;
+	let bmBTCInputAmount = 0;
 	let status = "";
 	
 	let equivalentBmbtc = 0;
