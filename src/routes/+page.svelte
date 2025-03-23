@@ -821,7 +821,7 @@
 							  <div class="progress-bar" style="width: {progressPercentage}%;"></div>
 							  <span class="progress-text">{progressPercentage.toFixed(2)}%</span>
 							</div>
-							<p class="status-display">{status}</p>
+							<!-- <p class="status-display">{status}</p> -->
 						  </div>
 						  {/if}
 					</div>
