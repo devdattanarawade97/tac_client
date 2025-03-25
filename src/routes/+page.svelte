@@ -1,11 +1,10 @@
 <script>
 	let activeTab = "mint"; // Default tab
-	import bmbtcABI from "../bmbtc_abi.json";
+	
 	// Assuming other variables (isConnected, isMetaMaskConnected, etc.) are defined in your script
 	import { onMount } from "svelte";
 	import { TonConnectUI } from "@tonconnect/ui";
 	import * as ethers from "ethers";
-	import addresses from "../addresses.json";
 	import treasureySwapABI from "../abi/treasureySwapABI.json";
 	import { toNano, TonClient } from "@ton/ton";
 	import tokensJson from "../tokens/tokens.json";
@@ -28,12 +27,13 @@
 		PUBLIC_TREASURE_SWAP_PROXY,
 		PUBLIC_TON_ADDRESS,
 		PUBLIC_BMBTC_TOKEN_ADDRESS,
-		PUBLIC_TON_SIDE_BMBTC_BALANCE,
 	} from "$env/static/public";
 
 	import { getTONBalance } from "../helper/getTonBalance";
 
 	import { validateAmount } from "../helper/validateAmount";
+	import { getEquivalentBmbtc } from "../helper/equivalentBmBtc";
+	
 
 	let tonBalance = 0;
 	/**
@@ -212,6 +212,7 @@
 					userTonWalletAddress,
 					tvmTokenAddress,
 				)) ?? 0;
+			
 		});
         
 		// @ts-ignore
@@ -231,29 +232,13 @@
 			status = "Wallet not connected.";
 			return;
 		}
-
-		if (jettonInputAmount < 1) {
-			status = "Please enter a valid Jetton amount.";
-			return;
-		}
-
+        
+	
 		try {
 			status = "Sending transaction...";
 
 			console.log("wton token address : ", PUBLIC_WTON_TOKEN_ADDRESS);
-			const jettonInfo = {
-				tvmAddress: PUBLIC_JETTON_TOKEN_ADDRESS,
-				name: "Jetton BTC",
-				symbol: "JBTC",
-				decimals: 9,
-				description: "TON description",
-				image: "abc",
-			};
-			const tokenMintInfoForJetton = {
-				info: jettonInfo,
-				mintAmount: 10 ** jettonInfo.decimals,
-			};
-
+			
 			// Encoding with single parameter
 			const to = PUBLIC_TREASURE_SWAP_PROXY;
 
@@ -263,7 +248,8 @@
 			const abi = ethers.AbiCoder.defaultAbiCoder();
 
 			const wTONamt = jettonInputAmount;
-			//const wTONamt = BigInt(jettonInputAmount*Number(tokenMintInfoForJetton.mintAmount))
+
+
 			console.log("wton amount for mint : ", wTONamt);
 			const methodName = "mint(bytes,bytes)";
 			// console.log('tac header : ' , tacHeader)
@@ -343,14 +329,14 @@
 				evmAdress: PUBLIC_BMBTC_TOKEN_ADDRESS,
 				name: "BIMA BTC",
 				symbol: "BMBTC",
-				decimals: 6,
+				decimals: 8,
 				description: "bmbtc description",
 				image: "abc",
 			};
 
 			const tokenMintInfoForBMBTC = {
 				info: bmbtcInfo,
-				mintAmount: 10 ** 6,
+				mintAmount: 10 ** 8,
 			};
 
 			// Encoding with single parameter
@@ -471,35 +457,17 @@
 		const value = e.target.value;
 
 		try {
-			const validateAmt = await validateAmount(
-				false,
-				value,
-				Number(tokensJson[0].lowerBound),
-				Number(tokensJson[0].upperBound),
-				tokensJson[0].decimals,
-				Number(tokensJson[0].tokenValue),
-				// @ts-ignore
-				tonBalance,
-				userJettonBalance,
-			);
-			console.log("s : ", validateAmt.status);
-			if (validateAmt.status) {
-				console.log("input amt is valid");
-			}
-			// @ts-ignore
-			// const provider = new ethers.BrowserProvider(window.ethereum);
-			// const contract = new ethers.Contract(
-			// 	addresses.BMBTC_Treasury,
-			// 	treasureySwapABI,
-			// 	provider,
-			// );
+			const isValid=await validateAmount(Number(jettonInputAmount));
+		if (!isValid) {
+			status = "Please enter a valid Jetton amount.";
+			return;
+		}
 
-			// equivalentBmbtc = Number(
-			// 	await contract.getTokenValue(jettonInputAmount),
-			// );
-			equivalentBmbtc =
-				(Number(value) * (Number(tokensJson[0].tokenValue) )/ 10 ** 6).toFixed(2);
-			console.log("equivalent bmbtc", equivalentBmbtc);
+			equivalentBmbtc = await getEquivalentBmbtc(value)??0;
+			// equivalentBmbtc =
+			// 	(Number(value) * (Number(tokensJson[0].tokenValue) )/ 10 ** 6).toFixed(2);
+			// console.log("equivalent bmbtc", equivalentBmbtc);
+			
 			loadingEquivalent = false;
 			// @ts-ignore
 			// if (typeof window.ethereum !== "undefined") {
@@ -519,10 +487,11 @@
 
 		try {
 			// @ts-ignore
-			equivalentWton =
-				((Number(value) * 10 ** 6) / Number(tokensJson[0].tokenValue)).toFixed(2);
-			console.log("equivalent bmbtc", equivalentWton);
-			loadingEquivalent =false;
+			// equivalentWton =
+			// 	((Number(value) * 10 ** 6) / Number(tokensJson[0].tokenValue)).toFixed(2);
+			// console.log("equivalent bmbtc", equivalentWton);
+			// loadingEquivalent =false;
+			equivalentWton=await getEquivalentTon(value)
 		} catch (error) {
 			console.log("error while fetching equivalent bmbtc for TON", value);
 		}
@@ -615,46 +584,7 @@
 	// 	}
 	// };
 
-	// @ts-ignore
-	const getTokenBalance = async (walletAddress, tokenAddress) => {
-		let formattedBalance = 0;
-		// ERC-20 balanceOf function ABI
-		console.log("bmbtc token address : ", tokenAddress);
 
-		console.log("bm btc token abi : ", bmbtcABI);
-		try {
-			console.log("wallet address : ", walletAddress);
-			console.log("token address : ", tokenAddress);
-			// Use ethers.js to interact with the contract
-			// @ts-ignore
-
-			if (typeof window.ethereum !== "undefined") {
-				// @ts-ignore
-				const provider = new ethers.BrowserProvider(window.ethereum);
-				const contract = new ethers.Contract(tokenAddress, bmbtcABI, provider);
-
-				const balance = Number(await contract.balanceOf(walletAddress));
-				const decimals = Number(await contract.decimals());
-
-				// Convert balance based on token decimals
-				// @ts-ignore
-				console.log("bmbtc balance : ", balance);
-				if (balance == 0) {
-					formattedBalance = 0;
-					return formattedBalance;
-				} else {
-					formattedBalance = Number(ethers.formatUnits(balance, decimals));
-					console.log(`Token ${tokenAddress} Balance:`, balance);
-				}
-			} else {
-				console.error("MetaMask is not installed!");
-			}
-
-			return formattedBalance;
-		} catch (error) {
-			console.error("Error fetching token balance:", error);
-		}
-	};
 </script>
 
 <main>

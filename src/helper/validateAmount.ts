@@ -1,58 +1,31 @@
+import { ethers } from "ethers";
+import {
 
-export const validateAmount = (isDrip: boolean, value: number, lowerBound: number, upperBound: number, decimals: number, tokenValue: number, tonBalance: number, jettonBalance: number) => {
-    if (isNaN(value))
-      return {
-        status: false,
-        message: "Incomplete Value"
-      };
-    if (!value)
-      return {
-        status: false,
-        message: "No Value"
-      };
-    if (value < 0)
-      return {
-        status: false,
-        message: "Negative Value"
-      };
-    if (isDrip) {
-      if (value > tonBalance)
-        return {
-          status: false,
-          message: "Insufficient Funds"
-        };
-      const amount = (value * tokenValue);
-      console.log(amount)
-      if (amount <= lowerBound)
-        return {
-          status: false,
-          message: "Amount too low"
-        };
-      if (amount > upperBound)
-        return {
-          status: false,
-          message: "Amount too big"
-        };
-      return {
-        status: true,
-        message: null
-      };
+    PUBLIC_TREASURE_SWAP_ADDRESS,
+ 
+
+} from "$env/static/public";
+import { toNano, TonClient } from "@ton/ton";
+import treasureySwapABI from '../abi/treasureySwapABI.json'
+export const validateAmount =async (tokenValue: number) => {
+  try {
+    //@ts-ignore
+    if (typeof window.ethereum !== "undefined") {
+        //@ts-ignore
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(PUBLIC_TREASURE_SWAP_ADDRESS, treasureySwapABI, provider);
+
+        // Call the contract function
+        const isValid: boolean = await contract.isValidTokenAmount(tokenValue);
+        console.log('is valid token amount : ', isValid)
+
+       return isValid
     } else {
-      //it's a refund
-      if (value > jettonBalance)
-        return {
-          status: false,
-          message: "Insufficient Funds"
-        };
-      if ((value * 10 ** decimals) > upperBound)
-        return {
-          status: false,
-          message: "Amount too big"
-        };
-      return {
-        status: true,
-        message: null
-      };
+        throw new Error("Ethereum provider not found.");
     }
+} catch (error) {
+    console.error("Error fetching equivalent BTC:", error);
+    return false;
+}
   }
   
