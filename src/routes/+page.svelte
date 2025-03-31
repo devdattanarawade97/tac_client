@@ -1,6 +1,6 @@
 <script>
 	let activeTab = "mint"; // Default tab
-	
+
 	// Assuming other variables (isConnected, isMetaMaskConnected, etc.) are defined in your script
 	import { onMount } from "svelte";
 	import { TonConnectUI } from "@tonconnect/ui";
@@ -9,6 +9,7 @@
 	import { toNano, TonClient } from "@ton/ton";
 	import tokensJson from "../tokens/tokens.json";
 	import { fetchJettonBalance } from "../helper/getJettonBalance";
+	import { postTransaction } from "../hooks/saveTransaction";
 	import {
 		TacSdk,
 		Network,
@@ -33,13 +34,15 @@
 
 	import { validateAmount } from "../helper/validateAmount";
 	import { getEquivalentBmbtc } from "../helper/equivalentBmBtc";
-	
+	import { tonwalletaddressStore } from "../store/walletStore";
+	// store.js
 
 	let tonBalance = 0;
 	/**
 	 * @type {string | undefined}
 	 */
 	let userTonWalletAddress;
+
 	/**
 	 * @type {string}
 	 */
@@ -87,7 +90,7 @@
 
 	let equivalentBmbtc = 0;
 	let equivalentWton = 0;
-	
+
 	let progressPercentage = 0;
 	/**
 	 * @type {string}
@@ -167,6 +170,12 @@
 			console.log("Wallet connection status:", isConnected);
 			userTonWalletAddress = wallet?.account.address;
 			console.log("user ton wallet address : ", userTonWalletAddress);
+			if (userTonWalletAddress) {
+				tonwalletaddressStore.set(userTonWalletAddress);
+				let add = $tonwalletaddressStore;
+				console.log("ton wallet", add);
+			}
+			// @ts-ignore
 			//log the token balance for connected wallet
 
 			// Initialize TacSdk
@@ -181,11 +190,12 @@
 				},
 				delay: 3,
 			});
-            
+
 			// @ts-ignore
 			sender = await SenderFactory.getSender({ tonConnect });
 			console.log("sender :", sender);
 			userTonWalletAddress = await sender.getSenderAddress();
+
 			// @ts-ignore
 			tonBalance = await getTONBalance(userTonWalletAddress);
 			console.log("ton balance : ", tonBalance);
@@ -212,10 +222,9 @@
 					userTonWalletAddress,
 					tvmTokenAddress,
 				)) ?? 0;
-			
 		});
-        
 		// @ts-ignore
+
 		// if (typeof window.ethereum !== "undefined") {
 		// 	// @ts-ignore
 		// 	metaMaskWallet = window.ethereum;
@@ -223,7 +232,6 @@
 		// } else {
 		// 	console.log("MetaMask not installed");
 		// }
-		
 	});
 
 	//mint tokens
@@ -232,13 +240,11 @@
 			status = "Wallet not connected.";
 			return;
 		}
-        
-	
+
 		try {
 			status = "Sending transaction...";
 
-			console.log("wton token address : ", PUBLIC_WTON_TOKEN_ADDRESS);
-			
+
 			// Encoding with single parameter
 			const to = PUBLIC_TREASURE_SWAP_PROXY;
 
@@ -248,7 +254,6 @@
 			const abi = ethers.AbiCoder.defaultAbiCoder();
 
 			const wTONamt = jettonInputAmount;
-
 
 			console.log("wton amount for mint : ", wTONamt);
 			const methodName = "mint(bytes,bytes)";
@@ -329,14 +334,14 @@
 				evmAdress: PUBLIC_BMBTC_TOKEN_ADDRESS,
 				name: "BIMA BTC",
 				symbol: "BMBTC",
-				decimals: 8,
+				decimals: tokensJson[0].decimals,
 				description: "bmbtc description",
 				image: "abc",
 			};
 
 			const tokenMintInfoForBMBTC = {
 				info: bmbtcInfo,
-				mintAmount: 10 ** 8,
+				mintAmount: bmbtcInfo.decimals,
 			};
 
 			// Encoding with single parameter
@@ -424,6 +429,17 @@
 					console.log(
 						`[${new Date().toISOString()}] Successfully retrieved Operation ID: ${operationId}`,
 					);
+					//save transaction
+					// const operationDetails = {
+					// 	operationId,
+					// 	status: "pending",
+					// 	type: activeTab,
+					// 	amount: activeTab == "mint" ? equivalentBmbtc : equivalentWton,
+					// 	currency: activeTab == "mint" ? "BMBTC" : "TON",
+					// };
+					// @ts-ignore
+					// const storeResponse=await postTransaction(userTonWalletAddress,operationDetails);
+					// console.log('store response : ', storeResponse)
 					break; // Exit loop if operationId is retrieved
 				} else {
 					console.log(
@@ -457,24 +473,21 @@
 		const value = e.target.value;
 
 		try {
-			const isValid=await validateAmount(Number(jettonInputAmount));
-		if (!isValid) {
-			status = "Please enter a valid Jetton amount.";
-			return;
-		}
-
-			equivalentBmbtc = await getEquivalentBmbtc(value)??0;
-			// equivalentBmbtc =
-			// 	(Number(value) * (Number(tokensJson[0].tokenValue) )/ 10 ** 6).toFixed(2);
-			// console.log("equivalent bmbtc", equivalentBmbtc);
-			
-			loadingEquivalent = false;
-			// @ts-ignore
-			// if (typeof window.ethereum !== "undefined") {
-
-			// } else {
-			// 	console.error("MetaMask is not installed!");
+			// 	const isValid=await validateAmount(Number(jettonInputAmount));
+			// if (!isValid) {
+			// 	status = "Please enter a valid Jetton amount.";
+			// 	return;
 			// }
+
+			// equivalentBmbtc = await getEquivalentBmbtc(value)??0;
+			equivalentBmbtc = Number(
+				((Number(value) * Number(tokensJson[0].tokenValue)) / 10 ** 6).toFixed(
+					2,
+				),
+			);
+			console.log("equivalent bmbtc", equivalentBmbtc);
+
+			loadingEquivalent = false;
 		} catch (error) {
 			console.log("error while fetching equivalent bmbtc for TON", value);
 		}
@@ -487,11 +500,13 @@
 
 		try {
 			// @ts-ignore
-			// equivalentWton =
-			// 	((Number(value) * 10 ** 6) / Number(tokensJson[0].tokenValue)).toFixed(2);
-			// console.log("equivalent bmbtc", equivalentWton);
-			// loadingEquivalent =false;
-			equivalentWton=await getEquivalentTon(value)
+			equivalentWton = (
+				(Number(value) * 10 ** 6) /
+				Number(tokensJson[0].tokenValue)
+			).toFixed(2);
+			console.log("equivalent wton", equivalentWton);
+			loadingEquivalent = false;
+			// equivalentWton=await getEquivalentTon(value)
 		} catch (error) {
 			console.log("error while fetching equivalent bmbtc for TON", value);
 		}
@@ -583,44 +598,20 @@
 	// 		console.error("Error connecting to MetaMask:", error);
 	// 	}
 	// };
-
-
 </script>
 
 <main>
 	<div class="wallet-container">
-		<!-- Wallet Connection and Operations -->
 		<div class="card">
-			<h1>TAC Wallet</h1>
-			<!-- Wallet Connections -->
+			<h1>BIMA Wallet</h1>
 			<div class="wallet-section">
 				<div class="wallet-grid">
 					<div class="wallet-item">
 						<div class="ton-connect-container" id="ton-connect"></div>
-					
 					</div>
-					
-					<!-- <div class="wallet-item">
-						<button
-							on:click={handleMetaMaskConnect}
-							class="connect-button metamask"
-						>
-							{#if isMetaMaskConnected}
-								Disconnect Metamask
-							{:else}
-								Connect MetaMask
-							{/if}
-						</button>
-						{#if isMetaMaskConnected}
-							<span class="status connected">
-								{metaMaskAccount ? `${metaMaskAccount}` : "N/A"}
-							</span>
-						{/if}
-					</div> -->
 				</div>
 			</div>
 
-			<!-- Switchable Operations -->
 			{#if isConnected || isMetaMaskConnected}
 				<div class="operations-section">
 					<div class="tab-bar">
@@ -643,43 +634,43 @@
 					<div class="tab-content">
 						{#if activeTab === "mint"}
 							<div class="input-group">
+								<label for="tonAmountMint">Amount to spend:</label>
 								<div class="input-wrapper">
 									<input
-										id="jettonAmount"
+										id="tonAmountMint"
 										type="number"
 										bind:value={jettonInputAmount}
-										min="1"
-										step="1"
+										min="0"
+										step="any"
 										placeholder="0.0"
 										on:input={handleJettonInputChange}
 									/>
-
 									<span class="token">TON</span>
 								</div>
-								{#if userJettonBalance}
+								{#if tonBalance != null}
 									<div class="balance">
-										<div class="bmbtcbalance">
-											balance : {Number(tonBalance).toFixed(2)} TON
-										</div>
+										<span>Balance: {Number(tonBalance).toFixed(4)} TON</span>
 									</div>
 								{/if}
-								<div class="input-wrapper">
-									<div class="input-wrapper">
-										<input
-											id="jettonAmount"
-											type="number"
-											bind:value={equivalentBmbtc}
-											disabled
-										/>
-									</div>
+							</div>
 
+							<div class="input-group">
+								<label for="bmbtcAmountMint">Amount to receive:</label>
+								<div class="input-wrapper">
+									<input
+										id="bmbtcAmountMint"
+										type="number"
+										bind:value={equivalentBmbtc}
+										placeholder="0.0"
+										disabled
+									/>
 									<span class="token">BMBTC</span>
 								</div>
-								{#if userBmbtcBalance}
+								{#if userBmbtcBalance != null}
 									<div class="balance">
-										<div class="bmbtcbalance">
-											balance : {Number(userBmbtcBalance).toFixed(2)} BMBTC
-										</div>
+										<span
+											>Balance: {Number(userBmbtcBalance).toFixed(8)} BMBTC</span
+										>
 									</div>
 								{/if}
 							</div>
@@ -687,260 +678,305 @@
 							{#if loadingEquivalent}
 								<button disabled class="action-button mint loading-button">
 									<span class="spinner"></span>
-									<span class="loading-text">Processing</span>
+									<span class="loading-text">Processing...</span>
 								</button>
 							{:else}
-								<button on:click={MintTokens} class="action-button mint">
+								<button
+									on:click={MintTokens}
+									class="action-button mint"
+									disabled={!jettonInputAmount || jettonInputAmount <= 0}
+								>
 									Mint BMBTC
 								</button>
 							{/if}
 						{:else}
 							<div class="input-group">
+								<label for="bmbtcAmountBurn">Amount to burn:</label>
 								<div class="input-wrapper">
 									<input
-										id="jettonAmount"
+										id="bmbtcAmountBurn"
 										type="number"
 										bind:value={bmBTCInputAmount}
-										min="1"
-										step="1"
+										min="0"
+										step="any"
 										placeholder="0.0"
 										on:input={handleBmbtcInputChange}
 									/>
 									<span class="token">BMBTC</span>
 								</div>
-								{#if userBmbtcBalance}
+								{#if userBmbtcBalance != null}
 									<div class="balance">
-										<div class="bmbtcbalance">
-											balance : {Number(userBmbtcBalance).toFixed(2)} BMBTC
-										</div>
-									</div>
-								{/if}
-								<div class="input-wrapper">
-									<input
-										id="bmbtcAmount"
-										type="number"
-										bind:value={equivalentWton}
-										min="1"
-										step="1"
-										placeholder="0.0"
-									/>
-									<span class="token">TONS</span>
-								</div>
-								{#if userJettonBalance}
-									<div class="balance">
-										<div class="bmbtcbalance">
-											balance : {Number(tonBalance).toFixed(2)} TON
-										</div>
+										<span
+											>Balance: {Number(userBmbtcBalance).toFixed(8)} BMBTC</span
+										>
 									</div>
 								{/if}
 							</div>
+
+							<div class="input-group">
+								<label for="tonAmountBurn">Amount to receive:</label>
+								<div class="input-wrapper">
+									<input
+										id="tonAmountBurn"
+										type="number"
+										bind:value={equivalentWton}
+										placeholder="0.0"
+										disabled
+									/>
+									<span class="token">TON</span>
+								</div>
+								{#if tonBalance != null}
+									<div class="balance">
+										<span>Balance: {Number(tonBalance).toFixed(4)} TON</span>
+									</div>
+								{/if}
+							</div>
+
 							{#if loadingEquivalent}
-								<button disabled class="action-button mint loading-button">
+								<button disabled class="action-button burn loading-button">
 									<span class="spinner"></span>
-									<span class="loading-text">Loading</span>
+									<span class="loading-text">Processing...</span>
 								</button>
 							{:else}
-								<button on:click={BurnTokens} class="action-button burn">
+								<button
+									on:click={BurnTokens}
+									class="action-button burn"
+									disabled={!bmBTCInputAmount || bmBTCInputAmount <= 0}
+								>
 									Burn BMBTC
 								</button>
 							{/if}
 						{/if}
-					      {#if progressPercentage}
-						  <div class="status-display">
-							<div class="progress-container">
-							  <div class="progress-bar" style="width: {progressPercentage}%;"></div>
-							  <span class="progress-text">{progressPercentage.toFixed(2)}%</span>
+
+						{#if progressPercentage != null && loadingEquivalent}
+							<div class="status-display">
+								<div class="progress-container">
+									<div
+										class="progress-bar"
+										style="width: {progressPercentage}%;"
+									></div>
+									<span class="progress-text"
+										>{progressPercentage.toFixed(0)}%</span
+									>
+								</div>
+								<p class="status-text">{status}</p>
 							</div>
-							<!-- <p class="status-display">{status}</p> -->
-						  </div>
-						  {/if}
+						{/if}
 					</div>
 				</div>
 			{/if}
+			<div class="nav-section">
+				<a href="/transactions" class="nav-link">View Transaction History</a>
+			</div>
 		</div>
 	</div>
 </main>
 
 <style>
-	/* Base styles for body */
-	body {
-		font-family: "Inter", sans-serif;
-		margin: 0;
-		padding: 20px;
-		background: linear-gradient(135deg, #f0f2f5 0%, #e0e5ec 100%);
-		color: #2c3e50;
-		min-height: 100vh;
-		-webkit-font-smoothing: antialiased; /* Improve font rendering in WebView */
-		box-sizing: border-box; /* Ensure padding doesn't overflow */
+	/* --- Color Palette --- */
+	:root {
+		--primary-color: #4a90e2; /* Vibrant Blue */
+		--primary-darker: #357abd; /* Darker Blue for hover */
+		--secondary-color: #50e3c2; /* Turquoise/Mint - Accent */
+		--success-color: #34d399; /* Emerald Green */
+		--success-darker: #10b981; /* Darker Green */
+		--danger-color: #f87171; /* Softer Red */
+		--danger-darker: #ef4444; /* Darker Red */
+
+		--text-dark: #1f2937; /* Dark Gray */
+		--text-medium: #6b7280; /* Medium Gray */
+		--text-light: #f9fafb; /* Near White */
+		--text-link: var(--primary-color);
+
+		--bg-body-start: #e0f2fe; /* Light Blue */
+		--bg-body-end: #bfdbfe; /* Medium Light Blue */
+		--bg-card: #ffffff;
+		--bg-input: #f3f4f6; /* Light Gray */
+		--bg-disabled: #e5e7eb; /* Slightly darker gray for disabled */
+		--bg-tab-inactive: var(--bg-input);
+		--bg-progress: var(--bg-input);
+
+		--border-color: #d1d5db; /* Gray */
+		--border-focus-color: var(--primary-color);
+
+		--shadow-color: rgba(0, 0, 0, 0.1);
 	}
 
-	/* Reset for Telegram Mini App consistency */
+	/* Reset for consistency */
 	* {
 		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
 	}
 
 	/* Main content alignment */
 	main {
 		display: flex;
 		justify-content: center;
-		align-items: center;
-		min-height: calc(100vh - 40px); /* Account for padding */
+		align-items: flex-start; /* Align card to top */
+		/* min-height removed, handled by body min-height and padding */
+		/* padding-top removed, handled by body padding */
 	}
 
 	/* Wallet container */
 	.wallet-container {
 		width: 100%;
-		max-width: 520px; /* Increased card size */
+		max-width: 480px; /* Slightly narrower for better mobile feel */
 	}
 
 	/* Heading styles */
 	h1 {
-		font-size: 2rem; /* Slightly larger */
+		font-size: 1.75rem; /* Adjusted size */
 		font-weight: 700;
-		color: #34495e;
+		color: var(--text-dark);
 		text-align: center;
-		margin-bottom: 20px;
+		margin-bottom: 24px; /* More space below heading */
 	}
 
 	/* Card styles */
 	.card {
 		width: 100%;
-		background: #ffffff;
-		border-radius: 16px;
-		box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+		background: var(--bg-card);
+		border-radius: 16px; /* Softer corners */
+		box-shadow: 0 8px 32px var(--shadow-color); /* Softer shadow */
 		padding: 24px;
-		border: 1px solid #e0e5ec;
+		border: 1px solid var(--border-color);
 	}
 
 	/* Wallet Section */
 	.wallet-section {
-		margin-bottom: 20px;
+	
+		margin-bottom: 24px;
+		display: flex;
 	}
 
 	.wallet-grid {
-		display: flex;
-		justify-content: space-between;
-		gap: 15px;
+		display: flex; /* Keep this to arrange items INSIDE the grid */
+        align-items: center;
+
+		/* FIXED: Use margin-left: auto to push the grid itself to the right */
+		margin-left: auto;
+		margin-right: 0; /* Optional: ensure no unintended right margin */
+
+		/* float: right; */ /* REMOVED: Do not use float with flex on the same element */
 	}
 
 	.wallet-item {
-		flex: 1;
-		
 		display: flex;
-  justify-content: flex-end;
-		
+		width: 100%; /* Make items take full width */
+		float: right;
 	}
 
 	.ton-connect-container {
-
-		min-height: 40px;
-		margin-bottom: 8px;
-
+		width: 100%; /* Ensure container takes full width */
 	}
 
-	#ton-connect {
-		
-		width: 100%;
-		max-width: 160px;
+	/* Navigation Link */
+	.nav-section {
+		text-align: left;
+		margin-top: 20px; /* You might want this back */
 	}
-
-	.connect-button {
-	
-		width: 100%;
-		padding: 12px;
-		font-size: 1rem;
-		font-weight: 600;
-		color: #fff;
-		border: none;
-		border-radius: 8px;
+	.nav-link {
+		color: var(--text-link);
+		font-size: 0.9rem;
+		font-weight: 400;
+		text-decoration: none;
+		font-family: inherit; /* Inherits from body or parent */
 		cursor: pointer;
-		transition: all 0.2s ease;
+		transition: color 0.2s ease-in-out; /* Smooth color transition */
+		display: inline-block; /* Helps prevent potential minor layout shifts */
+		padding: 2px 0; /* Add minimal vertical padding if needed for visual spacing */
 	}
 
-	.metamask {
-		background: #3b82f6;
-	}
-
-	.metamask:hover {
-		background: #2563eb; /* Darker shade for hover */
-	}
-
-	.status {
-		display: block;
-		font-size: 0.85rem;
-		margin-top: 6px;
-	}
-
-	.status.connected {
-		color: #27ae60;
+	.nav-link:hover {
+		color: var(--primary-darker); /* Darker color on hover */
+		/* REMOVED font-size: 0.9rem; - It will now correctly inherit 0.9rem or 0.85rem based on screen size */
 	}
 
 	/* Operations Section */
 	.operations-section {
-		padding-top: 15px;
-		border-top: 1px solid #e0e5ec;
+		padding-top: 20px;
+		margin-top: 20px;
+		border-top: 1px solid var(--border-color);
 	}
 
 	.tab-bar {
 		display: flex;
 		gap: 10px;
-		margin-bottom: 15px;
+		margin-bottom: 20px;
 	}
 
 	.tab {
-		flex: 1;
-		padding: 8px;
+		flex: 1; /* Equal width tabs */
+		padding: 10px 12px; /* Comfortable padding */
 		font-size: 1rem;
-		font-weight: 500;
-		color: #7f8c8d;
-		background: #f5f7fa;
-		border: none;
-		border-radius: 6px;
+		font-weight: 600;
+		color: var(--text-medium);
+		background: var(--bg-tab-inactive);
+		border: 1px solid var(--border-color); /* Subtle border */
+		border-radius: 8px;
 		cursor: pointer;
 		transition: all 0.2s ease;
+		text-align: center; /* Ensure text is centered */
 	}
 
 	.tab.active {
-		background: #3b82f6;
-		color: #fff;
+		background: var(--primary-color);
+		color: var(--text-light);
+		border-color: var(--primary-color);
 	}
 
 	.tab:hover:not(.active) {
-		background: #e0e5ec;
+		background: #e5e7eb; /* Slightly darker inactive hover */
+		color: var(--text-dark);
 	}
 
 	.tab-content {
-		transition: all 0.3s ease;
+		transition: all 0.3s ease; /* Smooth transition if content changes */
 	}
 
 	.input-group {
-		margin-bottom: 15px;
+		margin-bottom: 20px; /* Space between input groups */
 	}
 
 	label {
 		display: block;
 		font-size: 0.9rem;
 		font-weight: 500;
-		color: #34495e;
-		margin-bottom: 6px;
+		color: var(--text-medium);
+		margin-bottom: 8px; /* Space between label and input */
 	}
 
 	.input-wrapper {
 		position: relative;
-		margin-top: 30px;
 	}
 
 	input[type="number"] {
 		width: 100%;
-		padding: 12px 60px 12px 14px;
+		padding: 14px 75px 14px 16px; /* Adjusted padding: top/bottom, right (for token), left */
 		font-size: 1rem;
-		color: #2c3e50;
-		border: 1px solid #d0d7de;
-		border-radius: 6px;
+		color: var(--text-dark);
+		background-color: var(--bg-card); /* Changed from bg-input for contrast */
+		border: 1px solid var(--border-color);
+		border-radius: 10px; /* Consistent radius */
 		box-sizing: border-box;
-		transition: all 0.2s ease;
-		-webkit-appearance: none; /* Remove default number input arrows in WebView */
-		appearance: none;
+		transition:
+			border-color 0.2s ease,
+			box-shadow 0.2s ease;
+		appearance: textfield; /* Better number input appearance */
+		-webkit-appearance: textfield;
+		-moz-appearance: textfield;
+		font-family: inherit; /* Ensure consistent font */
+	}
+	input[type="number"]:focus {
+		outline: none;
+		border-color: var(--border-focus-color);
+		box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3); /* Subtle focus ring */
+	}
+	input[type="number"]:disabled {
+		background-color: var(--bg-disabled);
+		cursor: not-allowed;
+		color: var(--text-medium);
 	}
 
 	.token {
@@ -948,161 +984,185 @@
 		right: 10px;
 		top: 50%;
 		transform: translateY(-50%);
-		font-size: 0.85rem;
+		font-size: 0.8rem; /* Smaller token label */
 		font-weight: 600;
-		color: #7f8c8d;
-		background: #e0e5ec;
-		padding: 3px 8px;
-		border-radius: 4px;
+		color: var(--text-medium);
+		background: var(--bg-input);
+		padding: 5px 10px; /* Padding around token */
+		border-radius: 6px;
+		border: 1px solid var(--border-color); /* Match input border */
+		user-select: none; /* Prevent selection */
 	}
 
+	/* Action Buttons (Mint/Burn) */
 	.action-button {
 		width: 100%;
-		padding: 14px;
-		font-size: 1rem;
+		padding: 16px; /* Larger padding for primary action */
+		font-size: 1.05rem; /* Slightly larger font */
 		font-weight: 600;
-		color: #fff;
+		color: var(--text-light);
 		border: none;
-		border-radius: 8px;
+		border-radius: 10px; /* Consistent radius */
 		cursor: pointer;
-		transition: all 0.2s ease;
+		transition:
+			background-color 0.2s ease,
+			transform 0.1s ease;
+		margin-top: 10px; /* Space above the button */
+		font-family: inherit; /* Ensure consistent font */
 	}
-
-	.mint {
-		background: #2ecc71;
-	}
-
-	.mint:hover {
-		background: #27ae60;
+	.action-button:hover:not(:disabled) {
 		transform: translateY(-1px);
 	}
-
-	.burn {
-		background: #e74c3c;
+	.action-button:active:not(:disabled) {
+		transform: translateY(0px);
+	}
+	.action-button:disabled {
+		background-color: var(--bg-disabled);
+		color: var(--text-medium);
+		cursor: not-allowed;
 	}
 
-	.burn:hover {
-		background: #c0392b;
-		transform: translateY(-1px);
+	.action-button.mint {
+		background: var(--success-color);
+	}
+	.action-button.mint:hover:not(:disabled) {
+		background: var(--success-darker);
 	}
 
-	.status-display {
-		margin-top: 15px;
-		padding: 12px;
-		background: #f5f7fa;
-		border: 1px solid #e0e5ec;
-		border-radius: 6px;
-		font-size: 0.9rem;
-		color: #34495e;
-		white-space: pre-wrap;
-		word-wrap: break-word;
+	.action-button.burn {
+		background: var(--danger-color);
+	}
+	.action-button.burn:hover:not(:disabled) {
+		background: var(--danger-darker);
 	}
 
+	/* Balance Display */
 	.balance {
-		color: #27ae60;
-		font-size: 1rem;
-		font-weight: bold;
-		display: flex;
-		flex-direction: row;
-		padding: 5px;
+		font-size: 0.85rem; /* Smaller balance text */
+		font-weight: 500;
+		color: var(--text-medium);
 		text-align: right;
+		margin-top: 8px; /* Space above balance */
+		padding-right: 4px; /* Align slightly with input padding */
 	}
 
-	.bmbtcbalance {
-		margin-left: auto;
-	}
-
+	/* Loading State */
 	.loading-button {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 8px;
+		gap: 10px; /* Space between spinner and text */
 	}
-
 	.spinner {
-		width: 16px;
-		height: 16px;
-		border: 3px solid rgba(0, 0, 0, 0.1);
-		border-top-color: #1f05b1;
+		width: 18px; /* Slightly larger spinner */
+		height: 18px;
+		border: 3px solid rgba(255, 255, 255, 0.3); /* Lighter border on dark buttons */
+		border-top-color: var(--text-light); /* White spinner top */
 		border-radius: 50%;
 		animation: spin 1s linear infinite;
 	}
-
 	.loading-text {
-		font-size: 1rem;
+		font-size: 1.05rem; /* Match action button size */
 		font-weight: 600;
-		color: #ffffff;
+		color: var(--text-light);
 	}
-
 	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
 		to {
 			transform: rotate(360deg);
 		}
 	}
 
-	/* Media query for smaller screens (Telegram Mini App compatibility) */
+	/* Status Display & Progress Bar */
+	.status-display {
+		margin-top: 24px; /* More space above status */
+		padding: 16px;
+		background: var(--bg-input);
+		border: 1px solid var(--border-color);
+		border-radius: 10px;
+		font-size: 0.9rem;
+		color: var(--text-dark);
+	}
+	.progress-container {
+		width: 100%;
+		height: 24px; /* Taller progress bar */
+		background: var(--bg-progress);
+		border-radius: 6px;
+		position: relative;
+		overflow: hidden; /* Ensure bar stays within bounds */
+		border: 1px solid var(--border-color); /* Add border */
+	}
+	.progress-bar {
+		height: 100%;
+		background: var(--primary-color); /* Use primary color for progress */
+		border-radius: 6px 0 0 6px; /* Only round left corners if not full */
+		transition: width 0.4s ease-in-out;
+	}
+	.progress-bar[style*="width: 100%"] {
+		border-radius: 6px; /* Full radius when complete */
+	}
+	.progress-text {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		font-size: 0.85rem;
+		color: var(--text-light); /* White text */
+		font-weight: 600;
+		text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2); /* Make text more readable */
+		white-space: nowrap; /* Prevent text wrapping */
+	}
+	.status-text {
+		margin-top: 12px;
+		font-size: 0.9rem;
+		color: var(--text-medium);
+		text-align: center;
+	}
+
+	/* Media query for smaller screens (Refined) */
 	@media (max-width: 480px) {
 		body {
-			padding: 10px;
-		}
-
-		h1 {
-			font-size: 1.5rem;
+			padding: 15px; /* Slightly less padding on mobile */
 		}
 
 		.wallet-container {
-			max-width: 100%;
+			max-width: 100%; /* Use full width */
+		}
+		h1 {
+			font-size: 1.6rem; /* Adjust heading */
+			margin-bottom: 20px;
+		}
+		.card {
+			padding: 20px; /* Adjust card padding */
+			border-radius: 12px;
 		}
 
-		.wallet-grid {
-			flex-direction: column;
-			gap: 10px;
+		/* Adjust nav link font size for smaller screens */
+		.nav-link {
+			font-size: 0.85rem;
 		}
 
-		.connect-button {
-			padding: 10px;
-			font-size: 0.9rem;
+		input[type="number"] {
+			padding: 12px 70px 12px 14px; /* Adjust padding */
+			font-size: 0.95rem;
 		}
-
 		.action-button {
-			padding: 12px;
-			font-size: 0.9rem;
+			font-size: 1rem;
+			padding: 14px;
+		}
+
+		.tab {
+			padding: 8px 10px;
+			font-size: 0.9rem; /* Slightly smaller tab text */
+		}
+
+		.token {
+			right: 8px;
+			padding: 4px 8px;
+			font-size: 0.75rem;
+		}
+
+		.progress-text {
+			font-size: 0.8rem;
 		}
 	}
-	.status-display {
-    margin-top: 10px;
-    padding-top: 10px;
-    background: #f5f7fa;
-    border: 1px solid #e0e5ec;
-    border-radius: 6px;
-    overflow: hidden;
-  }
-
-  .progress-container {
-    width: 100%;
-    height: 20px;
-    background: #e0e5ec;
-    border-radius: 4px;
-    position: relative;
-  }
-
-  .progress-bar {
-    height: 100%;
-    background: #27ae60;
-    border-radius: 4px;
-    transition: width 0.3s ease;
-  }
-
-  .progress-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 0.9rem;
-    color: #fff;
-    font-weight: 500;
-  }
 </style>
