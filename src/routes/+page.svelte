@@ -20,6 +20,7 @@
 		SimplifiedStatuses,
 	} from "tac-sdk";
 
+
 	import {
 		PUBLIC_JETTON_TOKEN_ADDRESS,
 		PUBLIC_WTON_TOKEN_ADDRESS,
@@ -176,7 +177,7 @@
 				console.log("ton wallet", add);
 			}
 			// @ts-ignore
-			//log the token balance for connected wallet
+			//log the token balance for connected wallet now
 
 			// Initialize TacSdk
 			tac_sdk = await TacSdk.create({
