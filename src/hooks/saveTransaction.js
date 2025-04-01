@@ -18,7 +18,7 @@ export async function postTransaction(userId, operationDetails) {
       return null;
     }
   
-    const apiUrl = `${PUBLIC_BACKEND_URI}/transactions`; // POST endpoint URL
+    const apiUrl = `${PUBLIC_BACKEND_URI}/api/transactions`; // POST endpoint URL
     let responseData = null;
   
     // Structure the request body according to the API spec
