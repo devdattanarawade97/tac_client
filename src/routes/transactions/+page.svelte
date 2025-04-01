@@ -45,20 +45,6 @@
     console.log('address ton from store updated: ', address);
   });
 
-  // Function to save transaction (placeholder - replace with your actual logic if needed)
-  function saveTransaction(userAddress, txToSave) {
-      console.log(`Simulating save for address ${userAddress}:`, txToSave);
-      // In a real app, you might update localStorage, send to a backend, or update a reactive store
-      // For this example, let's update the local 'transactions' array reactively
-      const index = transactions.findIndex(t => t.id === txToSave.id);
-      if (index !== -1) {
-          transactions[index] = { ...transactions[index], ...txToSave };
-          transactions = transactions; // Trigger Svelte reactivity
-          console.log('Local transaction state updated.');
-      } else {
-          console.warn('Transaction to update not found in local state:', txToSave.id);
-      }
-  }
 
 
   async function trackTransaction(tx) {
@@ -113,17 +99,7 @@
                         newStatus = "pending";
                 }
 
-                // Update local state only if status changes
-                if (newStatus !== localTx.status) {
-                    localTx.status = newStatus;
-                    saveTransaction(address, localTx); // Persist the change (even if just updating local state for now)
-                    transactions = [...transactions]; // Trigger Svelte reactivity by creating a new array reference
-                }
-
-                // Exit loop if transaction reached a final state (completed or failed)
-                if (newStatus === "completed" || newStatus === "failed") {
-                    break;
-                }
+             
 
             } catch (trackError) {
                 console.error(`[${new Date().toISOString()}] Error fetching status for ${tx.id}:`, trackError);
@@ -136,15 +112,13 @@
             if (localTx.status === 'pending' || localTx.status === 'processing') {
               await new Promise((resolve) => setTimeout(resolve, delayMs));
               attempts++;
+            }else{
+              saveTransaction(address, localTx)
             }
         } // End while loop
 
         if (attempts >= maxAttempts && (localTx.status === 'pending' || localTx.status === 'processing')) {
             console.log(`Max attempts reached for ${tx.id}, operation status uncertain.`);
-            // Optionally update status to 'unknown' or 'timeout'
-            // localTx.status = 'unknown';
-            // saveTransaction(address, localTx);
-            // transactions = [...transactions];
         }
 
     } catch (error) {
