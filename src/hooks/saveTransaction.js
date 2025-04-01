@@ -1,5 +1,5 @@
 // --- Client-side code to POST a new transaction ---
-
+import { PUBLIC_BACKEND_URI } from '$env/static/public';
 /**
  * Sends transaction details to the API.
  * @param {string} userId - The Telegram User ID.
@@ -18,7 +18,7 @@ export async function postTransaction(userId, operationDetails) {
       return null;
     }
   
-    const apiUrl = 'http://localhost:3000/api/transactions'; // POST endpoint URL
+    const apiUrl = `${PUBLIC_BACKEND_URI}/transactions`; // POST endpoint URL
     let responseData = null;
   
     // Structure the request body according to the API spec

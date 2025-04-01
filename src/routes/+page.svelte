@@ -431,16 +431,16 @@
 						`[${new Date().toISOString()}] Successfully retrieved Operation ID: ${operationId}`,
 					);
 					//save transaction
-					// const operationDetails = {
-					// 	operationId,
-					// 	status: "pending",
-					// 	type: activeTab,
-					// 	amount: activeTab == "mint" ? equivalentBmbtc : equivalentWton,
-					// 	currency: activeTab == "mint" ? "BMBTC" : "TON",
-					// };
-					// @ts-ignore
-					// const storeResponse=await postTransaction(userTonWalletAddress,operationDetails);
-					// console.log('store response : ', storeResponse)
+					const operationDetails = {
+						operationId,
+						status: "pending",
+						type: activeTab,
+						amount: activeTab == "mint" ? equivalentBmbtc : equivalentWton,
+						currency: activeTab == "mint" ? "BMBTC" : "TON",
+					};
+				//	@ts-ignore
+					const storeResponse=await postTransaction(userTonWalletAddress,operationDetails);
+					console.log('store response : ', storeResponse)
 					break; // Exit loop if operationId is retrieved
 				} else {
 					console.log(
@@ -766,9 +766,11 @@
 					</div>
 				</div>
 			{/if}
-			<div class="nav-section">
-				<a href="/transactions" class="nav-link">View Transaction History</a>
-			</div>
+		{#if isConnected}
+		<div class="nav-section">
+			<a href="/transactions" class="nav-link">View Transaction History</a>
+		</div>
+		{/if}
 		</div>
 	</div>
 </main>

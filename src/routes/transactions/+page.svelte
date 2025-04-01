@@ -3,20 +3,23 @@
   import { onMount } from 'svelte';
   import { tonwalletaddressStore } from '../../store/walletStore'; // Adjust path if needed
   import { getLatestTransactions } from '../../hooks/retrievTransactions'; // Adjust path if needed
+  import { goto } from '$app/navigation'; // <--- IMPORT GOTO
   import {
+    TacSdk,
+    Network,
+    SenderFactory,
+    startTracking,
+    OperationTracker,
+    // @ts-ignore
+    SimplifiedStatuses,
+  } from "tac-sdk";
 
-TacSdk,
-Network,
-SenderFactory,
-startTracking,
-OperationTracker,
-// @ts-ignore
-SimplifiedStatuses,
-} from "tac-sdk";
   // Assuming OperationTracker and Network are available globally or imported
   // Ensure these are correctly referenced or imported based on your project setup
   // e.g., import { OperationTracker, Network } from 'your-sdk-package';
-  let loadingEquivalent =true
+
+  let loadingEquivalent = true;
+
   /**
    * @typedef {Object} Transaction
    * @property {string} id - The operation ID (or a unique transaction identifier) used for tracking.
@@ -25,7 +28,7 @@ SimplifiedStatuses,
    * @property {string | number} amount - Transaction amount
    * @property {string} [currency] - Optional: Currency symbol/name
    * @property {string} status - Current status ('Pending', 'Processing', 'Complete', 'Failed', 'Unknown')
-   * @property {number} progress - Progress percentage (0-100)
+   * @property {number} progress - Progress percentage (0-100) - Note: This property isn't used in the current template logic but is defined in the typedef.
    * @property {string} [errorMsg] - Optional error message on failure
    */
 
@@ -34,151 +37,194 @@ SimplifiedStatuses,
   let isLoading = true;
   /** @type {Error | null} */
   let error = null;
-  let progressPercentage=0;
+
   // Assuming $tonwalletaddressStore provides the address correctly
-  let address = $tonwalletaddressStore;
-  let transactionList=[];
-  console.log('address ton from store: ', address);
+  let address;
+  tonwalletaddressStore.subscribe(value => {
+    address = value;
+    console.log('address ton from store updated: ', address);
+  });
+
+  // Function to save transaction (placeholder - replace with your actual logic if needed)
+  function saveTransaction(userAddress, txToSave) {
+      console.log(`Simulating save for address ${userAddress}:`, txToSave);
+      // In a real app, you might update localStorage, send to a backend, or update a reactive store
+      // For this example, let's update the local 'transactions' array reactively
+      const index = transactions.findIndex(t => t.id === txToSave.id);
+      if (index !== -1) {
+          transactions[index] = { ...transactions[index], ...txToSave };
+          transactions = transactions; // Trigger Svelte reactivity
+          console.log('Local transaction state updated.');
+      } else {
+          console.warn('Transaction to update not found in local state:', txToSave.id);
+      }
+  }
+
 
   async function trackTransaction(tx) {
-		const tracker = new OperationTracker(Network.Testnet);
+    // Use Testnet or Mainnet based on your environment
+    const tracker = new OperationTracker(Network.Testnet); // Or Network.Mainnet
 
-		try {
-			console.log(`Tracking Operation ID: ${tx.operationId}`);
-			let attempts = 0;
-			const maxAttempts = 30;
-			const delayMs = 5000;
+    try {
+        console.log(`Tracking Operation ID: ${tx.id}`); // Use tx.id as defined in typedef
+        let attempts = 0;
+        const maxAttempts = 30; // ~2.5 minutes total wait time
+        const delayMs = 5000; // 5 seconds
 
-			while (attempts < maxAttempts) {
-				const opStatus = await tracker.getOperationStatus(tx.operationId);
-				console.log("Each Status:", opStatus.status);
+        // Find the transaction in the local array to update its status directly
+        let localTx = transactions.find(t => t.id === tx.id);
+        if (!localTx) {
+            console.error("Cannot track transaction not found in local list:", tx.id);
+            return;
+        }
 
-				switch (opStatus.status) {
-          case "TVMMerkleMessageExecuted":
-						// status = "Transaction Status : successful";
-            transactions.map(eachtx=>
-         {
-          if(eachtx.operationId==tx.operationId){
-            eachtx.status="completed";
-          }
-         }
-      
-         )
-						break;
+        while (attempts < maxAttempts && localTx.status === 'pending') { // Only track if pending
+            try {
+                const opStatus = await tracker.getOperationStatus(tx.id); // Use tx.id
+                console.log(`Attempt ${attempts + 1}: Status for ${tx.id}:`, opStatus.status);
 
-					case "EVMMerkleMessageCollected":
-				
-					case "EVMMerkleRootSet":
-				
-					case "EVMMerkleMessageExecuted":
-					
-					case "TVMMerkleMessageCollected":
-			
-					case "TVMMerkleRootSet":
-	
-		
-					default:
-          transactions.map(eachtx=>
-         {
-          if(eachtx.operationId==tx.operationId){
-            eachtx.status="in progress";
-          }
+                let newStatus = localTx.status; // Default to current status
 
-          
-         }
-      
-         )
-				}
-        console.log('new tx : ', transactions)
-				// Wait and retry if not in a final state
-				if (!["TVMMerkleMessageExecuted"].includes(opStatus.status)) {
-					await new Promise((resolve) => setTimeout(resolve, delayMs));
-					attempts++;
-				} else {
-					loadingEquivalent = false;
-					break;
-				}
-			}
+                // Map SDK statuses to your application statuses
+                switch (opStatus.status) {
+                    case "TVMMerkleMessageExecuted":
+                        newStatus = "completed";
+                        loadingEquivalent = false; // Assuming this global flag indicates overall loading
+                        break;
 
-			if (attempts >= maxAttempts) {
-				console.log("Max attempts reached, operation still not finalized.");
-			}
-		} catch (error) {
-			console.error(`[${new Date().toISOString()}] Tracking Error:`, error);
-			status = `Tracking Error: : ${error}`;
-		}
-	}
+                    // Consider other potential final states or relevant intermediate states
+                    case "EVMMerkleMessageCollected":
+                    case "EVMMerkleRootSet":
+                    case "EVMMerkleMessageExecuted":
+                    case "TVMMerkleMessageCollected":
+                    case "TVMMerkleRootSet":
+                        // Keep as pending or map to a specific "processing" state if desired
+                        newStatus = "pending"; // Or 'processing'
+                        break;
+
+                    // Handle potential error states if the SDK provides them
+                    // case "SomeErrorState":
+                    //  newStatus = "failed";
+                    //  localTx.errorMsg = "Transaction failed on chain."; // Add error details if available
+                    //  break;
+
+                    default:
+                        // Assume still pending if status is unrecognized or intermediate
+                        newStatus = "pending";
+                }
+
+                // Update local state only if status changes
+                if (newStatus !== localTx.status) {
+                    localTx.status = newStatus;
+                    saveTransaction(address, localTx); // Persist the change (even if just updating local state for now)
+                    transactions = [...transactions]; // Trigger Svelte reactivity by creating a new array reference
+                }
+
+                // Exit loop if transaction reached a final state (completed or failed)
+                if (newStatus === "completed" || newStatus === "failed") {
+                    break;
+                }
+
+            } catch (trackError) {
+                console.error(`[${new Date().toISOString()}] Error fetching status for ${tx.id}:`, trackError);
+                // Optionally set status to failed or keep pending and retry?
+                // Decide on error handling strategy (e.g., stop tracking, mark as error)
+                // For now, we just log and continue the loop/attempts
+            }
+
+            // Wait before the next attempt only if not in a final state
+            if (localTx.status === 'pending' || localTx.status === 'processing') {
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+              attempts++;
+            }
+        } // End while loop
+
+        if (attempts >= maxAttempts && (localTx.status === 'pending' || localTx.status === 'processing')) {
+            console.log(`Max attempts reached for ${tx.id}, operation status uncertain.`);
+            // Optionally update status to 'unknown' or 'timeout'
+            // localTx.status = 'unknown';
+            // saveTransaction(address, localTx);
+            // transactions = [...transactions];
+        }
+
+    } catch (error) {
+        console.error(`[${new Date().toISOString()}] General Tracking Error for ${tx.id}:`, error);
+        // Potentially update the specific transaction's status to 'failed' in the UI
+        let localTx = transactions.find(t => t.id === tx.id);
+        if (localTx) {
+            localTx.status = 'failed';
+            localTx.errorMsg = `Tracking Error: ${error.message || error}`;
+            saveTransaction(address, localTx);
+            transactions = [...transactions]; // Trigger reactivity
+        }
+    }
+}
 
 
   // --- Data Fetching and Initial Tracking ---
   onMount(async () => {
     isLoading = true;
     error = null;
+    if (!address) {
+        console.warn("Address not available on mount, waiting for store update.");
+        // Optional: Add logic to wait for address or trigger fetch once address is available
+        // For now, we'll let it proceed, but getLatestTransactions might fail or return empty
+        // A better approach might involve watching the store and triggering fetch inside the subscription
+        // isLoading = false; // Set loading false if we can't fetch yet
+        // return;
+    }
+
     try {
-      // Fetch initial transaction data - Replace with your actual implementation
       console.log('Fetching transactions for user address: ', address);
+      // Ensure getLatestTransactions returns data structured like the Transaction typedef
       const fetchedTransactions = await getLatestTransactions(address);
-       console.log('Fetched transactions: ', fetchedTransactions);
+      console.log('Fetched transactions: ', fetchedTransactions);
 
-      // Initialize status and progress if missing from the fetched data
-      // Use map to create a new array, ensuring reactivity from the start
-      transactions = fetchedTransactions.map(tx => ({
-        // Spread existing tx data first
+      // Initialize status if missing (assuming 'pending' if not provided)
+      // Ensure each transaction has a unique 'id' field for tracking and keys
+      if(fetchedTransactions.length>0){
+        transactions = fetchedTransactions.map(tx => ({
         ...tx,
-        // Ensure required fields have defaults
-        id: tx.id || tx.operationId, // Prefer 'id', fallback to 'operationId' if that's what your API returns
-        status: tx.status || 'Pending', // Default to Pending
-      
+        id: tx.id || tx.operationId || `fallback-${Math.random()}`, // Ensure an ID exists
+        status: tx.status || 'pending', // Default to 'pending' if status is missing
+        // Add other default fields from typedef if necessary
+        type: tx.type || 'Unknown',
+        amount: tx.amount || 'N/A',
+        currency: tx.currency || '',
+        errorMsg: tx.errorMsg || null,
       }));
+      }
 
-      isLoading = false; // Show initial list now that it's populated
+      isLoading = false; // Show initial list
 
-      // --- Start tracking for relevant transactions ---
-      // Filter for transactions that need tracking (have an ID and are pending/processing)
-      const transactionsToTrack = transactions.filter(
-          tx => tx
-      );
-       console.log(`Found ${transactionsToTrack.length} transactions to track.`);
-       
-       console.log('transactions track : ', transactionsToTrack)
-      // Start tracking for each concurrently without blocking onMount
-      transactionsToTrack.forEach(tx => {
-          // Don't await here; let them run in the background
-          console.log('tx is : ', tx)
-          trackTransaction(tx).catch(err => {
-              // Optional: Catch errors specifically from the start of trackTransaction itself
-              console.error(`[${tx.id}] Failed to initiate tracking:`, err);
-              // Update the status to Failed here too if initiation fails
-              const txIndex = transactions.findIndex(t => t.id === tx.id);
-               if (txIndex !== -1) {
-                  transactions[txIndex].status = 'Failed';
-                  transactions[txIndex].errorMsg = 'Failed to start tracking.';
-                  transactions = [...transactions]; // Trigger reactivity
-               }
-          });
+      // --- Start tracking for pending transactions ---
+      const pendingTransactions = transactions.filter(tx => tx.status === 'pending' && tx.id);
+      console.log(`Found ${pendingTransactions.length} pending transactions to track.`);
+
+      // Start tracking concurrently
+      pendingTransactions.forEach(tx => {
+        // Don't await here; let them run in the background
+        console.log('Starting tracking for tx: ', tx.id);
+        trackTransaction(tx); // Pass the full transaction object
       });
 
     } catch (err) {
       console.error("Failed to fetch or process initial transactions:", err);
-      error = err; // Store error object/message
-      isLoading = false; // Stop loading indicator even if fetch fails
-      transactions = []; // Clear transactions on fetch error
+      error = err instanceof Error ? err : new Error(String(err)); // Ensure error is an Error object
+      isLoading = false;
+      transactions = []; // Clear transactions on error
     }
   });
 
-  // --- End Progress Helper ---
-
-  // --- Helper to shorten Operation ID (Keep as is from original, adjusted length) ---
-  /**
-   * @param {string | undefined | null} id
-   */
+  // Format Operation ID for display
   function formatOpId(id) {
-    if (!id || id.length < 8) return id || 'N/A'; // Handle null/short IDs, show N/A if null/undefined
-    // Show slightly more characters for better identification
+    if (!id || typeof id !== 'string' || id.length < 8) return id || 'N/A';
+    // Show first 4 and last 4 characters
     return `${id.substring(0, 4)}...${id.substring(id.length - 4)}`;
   }
 
-  // NOTE: The placeholder/mock retrieveTransactions function is removed as you're using getLatestTransactions
+  // Reactive statement to check if any transaction is still loading/pending
+  $: loadingEquivalent = transactions.some(tx => tx.status === 'pending' || tx.status === 'processing');
 
 </script>
 
@@ -190,7 +236,7 @@ SimplifiedStatuses,
       {#if isLoading}
         <div class="loading-indicator">Loading transactions... <span class="spinner"></span></div>
       {:else if error}
-        <div class="error-message">Error loading transactions: {error?.message || error}</div>
+        <div class="error-message">Error loading transactions: {error?.message || 'Unknown error'}</div>
       {:else if transactions.length === 0}
         <p class="no-transactions">No transactions found.</p>
       {:else}
@@ -205,18 +251,19 @@ SimplifiedStatuses,
               </tr>
             </thead>
             <tbody>
-              {#each transactions as tx (tx.operationId || Math.random())}
-           
+              {#each transactions as tx (tx.id)}
                 <tr>
                   <td data-label="Op ID" class="op-id">{formatOpId(tx.id)}</td>
-                  <td data-label="Type" class="tx-type">{tx.type || 'N/A'}</td>
-                  <td data-label="Amount">{tx.amount || 'N/A'} {tx.currency || ''}</td>
-                  <td data-label="Status">
-                    <div class="" >{tx.status}
-                    </div>
-                    {#if tx.status === 'Failed' && tx.errorMsg}
-                       <span class="error-details" title={tx.errorMsg}>{tx.errorMsg}</span>
-                    {/if}
+                  <td data-label="Type" class="tx-type">{tx.type}</td>
+                  <td data-label="Amount" class="tx-amount">{tx.amount} {tx.currency}</td>
+                  <td data-label="Status" class="tx-status status-{tx.status}">
+                     <div class="status-badge">{tx.status}</div>
+                     {#if tx.status === 'pending' || tx.status === 'processing'}
+                       <span class="status-spinner"></span>
+                     {/if}
+                     {#if tx.status === 'failed' && tx.errorMsg}
+                        <span class="error-details" title={tx.errorMsg}>{tx.errorMsg}</span>
+                     {/if}
                   </td>
                 </tr>
               {/each}
@@ -225,149 +272,163 @@ SimplifiedStatuses,
         </div>
       {/if}
 
+      {#if !isLoading && loadingEquivalent && transactions.length > 0}
+          <div class="overall-loading">Checking transaction status... <span class="spinner"></span></div>
+         
+      {/if}
+        
+
+
       <div class="nav-section">
-        <a href="/" class="nav-link">Back to Wallet</a>
-      </div>
+        <a
+            href="/"
+            class="nav-link"
+            on:click|preventDefault={async () => {
+             await goto('/');
+            window.location.reload()
+            }}
+        >
+            Back to Wallet
+        </a>
     </div>
   </div>
 </main>
 
 <style>
-  /* --- All your original CSS styles go here --- */
-  /* --- Color Palette & Base Styles --- */
+  /* --- TMA Compatibility Base Styles --- */
   :root {
-    --primary-color: #4A90E2; /* Vibrant Blue */
-    --primary-darker: #357ABD; /* Darker Blue for hover */
-    --secondary-color: #50E3C2; /* Turquoise/Mint - Accent */
-    --success-color: #34D399; /* Emerald Green */
-    --success-darker: #10B981; /* Darker Green */
-    --danger-color: #F87171; /* Softer Red */
-    --danger-darker: #EF4444; /* Darker Red */
-    --pending-color: #F59E0B; /* Amber 500 for Pending */
-    --pending-text-color: #1F2937; /* Dark text for pending bg */
+    /* Map semantic names to Telegram Theme variables with fallbacks */
+    --app-bg-color: var(--tg-theme-bg-color, #ffffff);
+    --app-secondary-bg-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
+    --app-text-color: var(--tg-theme-text-color, #000000);
+    --app-hint-color: var(--tg-theme-hint-color, #6b7280);
+    --app-link-color: var(--tg-theme-link-color, #007aff);
+    --app-button-color: var(--tg-theme-button-color, #007aff);
+    --app-button-text-color: var(--tg-theme-button-text-color, #ffffff);
+    --app-border-color: var(--tg-theme-secondary-bg-color, #d1d5db); /* Use secondary bg as border */
 
-    --text-dark: #1F2937; /* Dark Gray */
-    --text-medium: #6B7280; /* Medium Gray */
-    --text-light: #F9FAFB; /* Near White */
-    --text-link: var(--primary-color);
-
-    --bg-body-start: #E0F2FE; /* Light Blue */
-    --bg-body-end: #BFDBFE; /* Medium Light Blue */
-    --bg-card: #FFFFFF;
-    --bg-input: #F3F4F6; /* Light Gray - Use for table head */
-    --bg-progress: #E5E7EB; /* Use for progress bar background */
-
-    --border-color: #D1D5DB; /* Gray */
-    --border-focus-color: var(--primary-color);
-
-    --shadow-color: rgba(0, 0, 0, 0.1);
+    /* Status colors (using common web defaults as fallbacks) */
+    --status-success-color: var(--tg-theme-button-color, #34D399); /* Often green/accent */
+    --status-success-text: var(--tg-theme-button-text-color, #ffffff);
+    --status-danger-color: #F87171; /* Red - Telegram doesn't have a standard 'danger' variable */
+    --status-danger-text: #ffffff;
+    --status-pending-color: #F59E0B; /* Amber/Orange */
+    --status-pending-text: #1F2937; /* Dark text for readability on amber */
+    --status-processing-color: var(--tg-theme-link-color, #4A90E2); /* Blue/Link color */
+    --status-processing-text: #ffffff;
   }
 
-  /* Base styles for body (Keeping explicit font-family) */
   :global(body) {
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    /* Use Telegram's font, remove explicit font-family */
     margin: 0;
-    padding: 20px; /* Base padding */
-    background: linear-gradient(135deg, var(--bg-body-start) 0%, var(--bg-body-end) 100%);
-    color: var(--text-dark);
+    padding: 10px; /* Reduced padding for TMA */
+    background-color: var(--app-secondary-bg-color); /* Use secondary for body background */
+    color: var(--app-text-color);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-size: 16px; /* Base font size */
+    font-size: 16px;
     box-sizing: border-box;
+    /* Ensure touch scrolling works smoothly */
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* Reset for consistency (Keep as is) */
   * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
   }
 
-  /* Main content alignment (Keep as is) */
   main {
     display: flex;
     justify-content: center;
-    align-items: flex-start; /* Align card to top */
-    min-height: calc(100vh - 40px); /* Account for body padding */
-    padding-top: 20px; /* Add some space at the top */
+    align-items: flex-start;
+    min-height: calc(100vh - 20px); /* Account for body padding */
+    padding-top: 10px; /* Reduced top padding */
   }
 
-  /* Wallet container (Keep as is) */
   .wallet-container {
-    width: 100%;
-    max-width: 500px; /* Adjusted slightly larger for table */
-  }
+		width: 100%;
+		max-width: 480px; /* Slightly narrower for better mobile feel */
+	}
 
-  /* Heading styles (Keep as is - already matches target default) */
+
   h1 {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--text-dark);
+    font-size: 1.6rem; /* Slightly smaller */
+    font-weight: 600; /* Slightly less bold */
+    color: var(--app-text-color);
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px; /* Reduced margin */
   }
 
-  /* Card styles (Keep as is) */
   .card {
     width: 100%;
-    background: var(--bg-card);
-    border-radius: 16px; /* Softer corners */
-    box-shadow: 0 8px 32px var(--shadow-color); /* Softer shadow */
-    padding: 24px;
-    border: 1px solid var(--border-color);
+    background: var(--app-bg-color);
+    border-radius: 12px; /* Consistent rounded corners */
+    /* Softer shadow, using hint color for subtlety */
+    box-shadow: 0 4px 12px rgba(var(--tg-theme-hint-color, #000000), 0.1);
+    padding: 16px; /* Slightly reduced padding */
+    border: 1px solid var(--app-border-color);
   }
   /* --- End Base Styles --- */
 
 
-  /* --- Loading/Error/Empty States (Keep as is) --- */
-  .loading-indicator, .error-message, .no-transactions {
+  /* --- Loading/Error/Empty States --- */
+  .loading-indicator, .error-message, .no-transactions, .overall-loading {
     text-align: center;
-    padding: 30px 10px;
-    font-size: 1rem;
-    color: var(--text-medium); /* Use medium text color */
+    padding: 25px 10px;
+    font-size: 0.95rem;
+    color: var(--app-hint-color);
   }
   .error-message {
-      color: var(--danger-darker); /* Use darker danger color for errors */
+      color: var(--status-danger-color); /* Use danger color */
+      font-weight: 500;
    }
-  .loading-indicator .spinner {
+  .loading-indicator .spinner, .overall-loading .spinner {
     display: inline-block;
     vertical-align: middle;
     margin-left: 8px;
-    width: 18px; /* Match target spinner size */
-    height: 18px;
-    border: 3px solid rgba(0, 0, 0, 0.15); /* Slightly darker border */
-    border-top-color: var(--primary-color); /* Use primary color */
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--app-hint-color);
+    border-top-color: var(--app-link-color); /* Use link color for spinner */
     border-radius: 50%;
     animation: spin 1s linear infinite;
+  }
+  .overall-loading {
+      margin-top: 16px;
+      border-top: 1px solid var(--app-border-color);
+      padding-top: 16px;
   }
   /* --- End Loading --- */
 
 
-  /* --- Table Styles (Keep as is) --- */
+  /* --- Table Styles --- */
   .table-wrapper {
-    overflow-x: auto;
+    overflow-x: auto; /* Allow horizontal scroll on table if needed */
+    margin: 0 -16px; /* Extend wrapper slightly if card has padding */
+    padding: 0 16px;
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    margin-top: 16px;
     font-size: 0.9rem;
-    table-layout: fixed;
-    min-width: 400px;
+    /* table-layout: fixed; */ /* REMOVED - Allow flexible columns */
+    min-width: 300px; /* Minimum width before scroll appears */
   }
   th, td {
-    padding: 12px 10px;
+    padding: 10px 8px; /* Reduced padding */
     text-align: left;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--app-border-color);
     vertical-align: middle;
-    white-space: nowrap;
+    white-space: nowrap; /* Keep nowrap for default table view */
   }
   th {
-    background-color: var(--bg-input);
+    background-color: var(--app-secondary-bg-color); /* Use secondary bg for header */
     font-weight: 600;
-    color: var(--text-medium);
-    font-size: 0.85rem;
+    color: var(--app-hint-color);
+    font-size: 0.8rem; /* Smaller header text */
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -375,176 +436,218 @@ SimplifiedStatuses,
       border-bottom: none;
    }
 
-  /* --- Column Styles (Keep as is) --- */
-  th:nth-child(1), td:nth-child(1) { width: 25%; } /* Op ID */
-  th:nth-child(2), td:nth-child(2) { width: 15%; } /* Type */
-  th:nth-child(3), td:nth-child(3) { width: 25%; } /* Amount */
-  th:nth-child(4), td:nth-child(4) { width: 35%; } /* Status */
+  /* --- Column Content Styles --- */
+  /* REMOVED fixed width percentages */
 
   .op-id {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Courier New', Courier, monospace; /* Keep monospace for IDs */
     font-size: 0.8rem;
-    color: var(--text-medium);
-    word-break: break-all; /* Allow breaking if needed */
-    white-space: normal; /* Allow wrapping */
+    color: var(--app-hint-color);
   }
   .tx-type {
       font-weight: 500;
-      color: var(--text-dark);
+      color: var(--app-text-color);
    }
-  td[data-label="Amount"] {
+  .tx-amount {
       text-align: right;
-      padding-right: 12px;
       font-weight: 500;
+      padding-right: 10px;
    }
-  th:nth-child(3) {
-      text-align: right;
-      padding-right: 12px;
+   th:nth-child(3) { /* Amount Header */
+       text-align: right;
+       padding-right: 10px;
    }
-  td[data-label="Status"] {
-      text-align: center;
+   .tx-status {
+       text-align: center;
+       white-space: normal; /* Allow status text to wrap if needed */
    }
-  th:nth-child(4) {
-      text-align: center;
+   th:nth-child(4) { /* Status Header */
+       text-align: center;
    }
   /* --- End Column Styles --- */
 
-  .error-details {
-      font-size: 0.8rem;
-      color: var(--danger-darker);
-      display: block;
-      margin-top: 6px;
-      max-width: 150px; /* Limit width in table view */
-      margin-left: auto; margin-right: auto;
-      line-height: 1.3;
-      text-align: center;
-      white-space: normal; /* Allow wrapping */
-      word-wrap: break-word;
-  }
-  /* --- End Progress Bar --- */
+  /* --- Status Badge & Spinner --- */
+   .status-badge {
+       display: inline-block;
+       padding: 3px 8px;
+       border-radius: 12px; /* Pill shape */
+       font-size: 0.75rem;
+       font-weight: 500;
+       line-height: 1.2;
+       text-transform: capitalize;
+       margin-right: 4px; /* Space for spinner */
+       vertical-align: middle;
+   }
+   .status-spinner {
+       display: inline-block;
+       vertical-align: middle;
+       width: 12px;
+       height: 12px;
+       border: 2px solid currentColor; /* Use text color of parent */
+       border-top-color: transparent;
+       border-radius: 50%;
+       animation: spin 0.8s linear infinite;
+       opacity: 0.7;
+   }
+
+   /* Color coding the badges */
+   .status-completed .status-badge {
+       background-color: var(--status-success-color);
+       color: var(--status-success-text);
+   }
+   .status-pending .status-badge,
+   .status-processing .status-badge { /* Group pending/processing visually */
+       background-color: var(--status-pending-color);
+       color: var(--status-pending-text);
+   }
+    /* Optional: Different color for processing if desired */
+   /* .status-processing .status-badge {
+       background-color: var(--status-processing-color);
+       color: var(--status-processing-text);
+   } */
+   .status-failed .status-badge {
+       background-color: var(--status-danger-color);
+       color: var(--status-danger-text);
+   }
+   .status-unknown .status-badge { /* Add style for unknown */
+        background-color: var(--app-hint-color);
+        color: var(--app-bg-color);
+   }
+
+
+   .error-details {
+       font-size: 0.75rem; /* Smaller error text */
+       color: var(--status-danger-color);
+       display: block;
+       margin-top: 4px;
+       max-width: 150px;
+       margin-left: auto; margin-right: auto;
+       line-height: 1.3;
+       text-align: center;
+       white-space: normal;
+       word-wrap: break-word;
+   }
 
 
   /* --- Nav Section --- */
    .nav-section {
        text-align: center;
-       margin-top: 24px;
+       margin-top: 20px;
        padding-top: 16px;
-       border-top: 1px solid var(--border-color);
+       border-top: 1px solid var(--app-border-color);
    }
    .nav-link {
-       color: var(--text-link);
+       color: var(--app-link-color);
        font-size: 0.9rem;
-       /* --- MODIFICATION: Adjusted font-weight --- */
-       font-weight: 400; /* Changed from 500 */
+       font-weight: 500; /* Use 500 for links */
        text-decoration: none;
-       transition: color 0.2s ease;
+       transition: opacity 0.2s ease;
        padding: 8px 12px;
        border-radius: 6px;
        display: inline-block;
    }
-   .nav-link:hover {
-       color: var(--primary-darker);
+   .nav-link:hover { /* Hover might not be relevant on touch devices, use active? */
+       /* color: var(--app-link-color); */
+       opacity: 0.8; /* Slight fade on press/hover */
        text-decoration: none;
-       /* --- MODIFICATION: Removed background-color --- */
-       /* background-color: rgba(74, 144, 226, 0.1); */ /* Removed */
+   }
+   .nav-link:active {
+       opacity: 0.6;
    }
 
-   /* --- Keyframes (Keep spin animation) --- */
+   /* --- Keyframes --- */
    @keyframes spin {
       to { transform: rotate(360deg); }
    }
 
 
-  /* --- Responsive Stacking --- */
-  @media (max-width: 500px) {
+  /* --- Responsive Stacking for Narrow Screens (TMA context) --- */
+  @media (max-width: 550px) { /* Adjusted breakpoint slightly */
     :global(body) {
-       padding: 15px;
+       padding: 8px; /* Further reduce padding on small screens */
     }
-    .wallet-container {
-       max-width: 100%;
-    }
-     .card {
-       padding: 15px;
-       border-radius: 12px;
+    .card {
+       padding: 12px;
+       border-radius: 10px;
      }
      h1 {
-         /* --- MODIFICATION: Adjusted font-size --- */
-         font-size: 1.6rem; /* Changed from 1.5rem */
-         margin-bottom: 20px;
+         font-size: 1.4rem;
+         margin-bottom: 16px;
      }
 
-    .table-wrapper { overflow-x: visible; margin:0; padding: 0;}
-    table { min-width: 0; font-size: 0.85rem; table-layout: auto; margin-top: 15px;}
-    th, td { white-space: normal; padding: 10px 8px;}
-    thead { display: none; }
+    .table-wrapper {
+        overflow-x: hidden; /* Hide horizontal scroll in stacked view */
+        margin: 0; padding: 0;
+    }
+    table { min-width: 0; font-size: 0.9rem; table-layout: auto; margin-top: 12px; }
+    th, td { white-space: normal; padding: 8px 6px; } /* Allow wrapping, reduce padding */
+    thead { display: none; } /* Hide table header */
 
     tr {
        display: block;
-       margin-bottom: 12px;
-       border: 1px solid var(--border-color);
+       margin-bottom: 10px;
+       border: 1px solid var(--app-border-color);
        border-radius: 8px;
        overflow: hidden;
-       background: var(--bg-card);
-       box-shadow: 0 2px 4px rgba(0,0,0, 0.05);
+       background: var(--app-bg-color);
+       /* Keep a very subtle shadow */
+       box-shadow: 0 2px 4px rgba(var(--tg-theme-hint-color, #000000), 0.05);
     }
     td {
-       display: block;
+       display: flex; /* Use flex for alignment */
+       align-items: center; /* Vertically center */
+       justify-content: flex-end; /* Align value to the right */
        text-align: right;
-       border-bottom: 1px dashed #eee;
+       border-bottom: 1px dashed var(--app-border-color); /* Lighter separator */
        position: relative;
-       padding: 10px 10px 10px 45%;
-       min-height: 38px;
-       /* Align items for stacked view */
-       display: flex;
-       align-items: center;
-       justify-content: flex-end;
+       padding: 10px 10px 10px 40%; /* Space for label */
+       min-height: 40px;
     }
     td:last-child { border-bottom: none; }
 
     td::before {
-       content: attr(data-label);
+       content: attr(data-label); /* Show label */
        position: absolute;
        left: 10px;
        top: 50%;
        transform: translateY(-50%);
-       width: 40%;
+       width: 35%; /* Adjust width for label */
        padding-right: 10px;
        font-weight: 600;
        text-align: left;
        white-space: nowrap;
        overflow: hidden;
        text-overflow: ellipsis;
-       color: var(--text-medium);
+       color: var(--app-hint-color);
        font-size: 0.8rem;
     }
 
-    /* --- MODIFICATION: Added rule for nav-link small screen size --- */
     .nav-link {
         font-size: 0.85rem;
     }
 
-    /* Adjust specific cell alignments if needed (Keep as is) */
-    .op-id { text-align: right; font-size: 0.75rem; justify-content: flex-end; } /* Ensure value aligns right */
-    td[data-label="Amount"] { text-align: right; justify-content: flex-end; }
+    /* Adjust specific cell alignments for stacked view */
+    .op-id { font-size: 0.75rem; justify-content: flex-end; }
+    .tx-amount { justify-content: flex-end; }
 
-    /* Stacked progress bar alignment */
+    /* Stacked status alignment */
     td[data-label="Status"] {
-        /* Override flex alignment for this cell if error needs to stack */
-        display: block; /* Back to block to allow error below */
-        text-align: right;
-        padding-top: 12px;
-        padding-bottom: 12px;
+        /* Flex alignment should work fine here now with badge/spinner */
+        justify-content: flex-end; /* Align badge/spinner right */
+        /* If error needs to stack below badge: */
+        /* flex-wrap: wrap; */ /* Allows error to wrap below */
     }
 
      td[data-label="Status"] .error-details {
-       display: block; /* Ensure error message is block */
-       text-align: right; /* Align with the progress bar */
-       margin: 6px 0 0 0;
-       max-width: none; /* Allow full width */
-       font-size: 0.75rem;
+       /* Ensure error message is aligned correctly in flex context */
+       flex-basis: 100%; /* Make error take full width below badge */
+       text-align: right;
+       margin: 4px 0 0 0;
+       max-width: none;
+       font-size: 0.7rem;
      }
      .nav-section {
-        margin-top: 20px;
+        margin-top: 16px;
         padding-top: 12px;
      }
   }

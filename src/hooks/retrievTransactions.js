@@ -1,5 +1,5 @@
 // --- Client-side code to GET latest transactions ---
-
+import { PUBLIC_BACKEND_URI } from '$env/static/public';
 /**
  * Retrieves the latest (up to 10) transactions for a specific user from the API.
  * @param {string} userId - The Telegram User ID to fetch transactions for.
@@ -11,9 +11,10 @@ export async function getLatestTransactions(userId) {
         console.error("Invalid or missing User ID provided.");
         return null; // Return null for invalid input
     }
-
+     
+    
     // 2. Define API URL (including userId in the path)
-    const apiUrl = `http://localhost:3000/api/transactions/${userId}`;
+    const apiUrl = `${PUBLIC_BACKEND_URI}/api/transactions/${userId}`;
     let responseData = null; // To store the parsed response array
 
     console.log(`Workspaceing latest transactions for user: ${userId}...`);
