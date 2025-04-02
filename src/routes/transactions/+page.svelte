@@ -320,7 +320,7 @@
 <style>
     /* --- TMA Compatibility Base Styles --- */
     :root {
-        /* Map semantic names to Telegram Theme variables with fallbacks */
+        /* Using Telegram theme variables with fallbacks */
         --app-bg-color: var(--tg-theme-bg-color, #ffffff);
         --app-secondary-bg-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
         --app-text-color: var(--tg-theme-text-color, #000000);
@@ -328,7 +328,7 @@
         --app-link-color: var(--tg-theme-link-color, #007aff);
         --app-button-color: var(--tg-theme-button-color, #007aff);
         --app-button-text-color: var(--tg-theme-button-text-color, #ffffff);
-        --app-border-color: var(--tg-theme-secondary-bg-color, #e5e7eb); /* Slightly adjusted fallback border */
+        --app-border-color: var(--tg-theme-secondary-bg-color, #e5e7eb);
 
         /* Status colors */
         --status-success-color: #34d399;
@@ -339,196 +339,133 @@
         --status-pending-text: #1f2937;
         --status-processing-color: #60a5fa;
         --status-processing-text: #ffffff;
-        --status-unknown-color: var(--app-hint-color, #6b7280);
-        --status-unknown-text: var(--app-bg-color, #ffffff);
+        --status-unknown-color: var(--app-hint-color);
+        --status-unknown-text: var(--app-bg-color);
     }
 
-    :global(body) {
-        margin: 0;
-        padding: 8px; /* Default padding */
-        background-color: var(--app-secondary-bg-color);
-        color: var(--app-text-color);
-        min-height: 100vh;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        font-size: 15px;
-        box-sizing: border-box;
-        -webkit-overflow-scrolling: touch;
-        /* Ensure body itself doesn't cause horizontal scroll */
-        overflow-x: hidden;
-    }
-
+    /* --- Global Reset & Strict Width Control --- */
     * {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
     }
 
-    main {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        min-height: calc(100vh - 16px); /* Adjust based on body padding */
-        padding-top: 8px; /* Consistent with body padding */
-        width: 100%; /* Ensure main takes full width */
-    }
+	/* Main content alignment */
+	main {
+		display: flex;
+		justify-content: center;
+		align-items: flex-start; /* Align card to top */
+		/* min-height removed, handled by body min-height and padding */
+		/* padding-top removed, handled by body padding */
+	}
 
-    /* Wallet container - Default Max Width */
-    .wallet-container {
-        width: 100%;
-        /* Default max-width for wider screens if desired, TMA usually handles this */
-        /* max-width: 600px; <-- Can be adjusted or removed depending on desired large screen behavior */
-        /* For TMA, often relying on 100% width is fine */
-        padding: 0; /* Remove padding here if body has it */
-    }
-
-    h1 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: var(--app-text-color);
-        text-align: center;
-        margin-bottom: 16px;
-    }
-
-    .card {
-        width: 100%; /* Card takes full width of its container */
-        background: var(--app-bg-color);
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(var(--tg-theme-hint-color, #000000), 0.08);
-        padding: 12px; /* Default card padding */
-        border: 1px solid var(--app-border-color);
-        margin-bottom: 10px; /* Add space below card if needed */
-    }
-    /* --- End Base Styles --- */
+	/* Wallet container */
+	.wallet-container {
+		width: 100%;
+		max-width: 480px; /* Slightly narrower for better mobile feel */
+	}
+  
+    h1 { font-size: 1.6rem; /* Adjusted */ font-weight: 600; color: var(--app-text-color); text-align: center; margin-bottom: 20px; /* Adjusted */ }
+    .card { width: 100%; background: var(--app-bg-color); border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Adjusted shadow */ padding: 16px; /* Adjusted padding */ border: 1px solid var(--app-border-color); margin-bottom: 16px; /* Adjusted */ }
 
     /* --- Loading/Error/Empty States --- */
-    .loading-indicator,
-    .error-message,
-    .no-transactions,
-    .overall-loading {
-        text-align: center;
-        padding: 20px 10px;
-        font-size: 0.9rem;
-        color: var(--app-hint-color);
-    }
-    .error-message {
-        color: var(--status-danger-color);
-        font-weight: 500;
-    }
-    .loading-indicator .spinner,
-    .overall-loading .spinner {
-        display: inline-block;
-        vertical-align: middle;
-        margin-left: 8px;
-        width: 1em;
-        height: 1em;
-        border: 2px solid var(--app-hint-color);
-        border-top-color: var(--app-link-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-    .overall-loading {
-        margin-top: 16px;
-        border-top: 1px solid var(--app-border-color);
-        padding-top: 16px;
-    }
-    /* --- End Loading --- */
+    .loading-indicator, .error-message, .no-transactions, .overall-loading { text-align: center; padding: 30px 15px; font-size: 0.95rem; color: var(--app-hint-color); }
+    .error-message { color: var(--status-danger-color); font-weight: 500; }
+    .loading-indicator .spinner, .overall-loading .spinner { display: inline-block; vertical-align: middle; margin-left: 8px; width: 1.2em; height: 1.2em; border: 2px solid currentColor; border-top-color: var(--app-link-color); border-radius: 50%; animation: spin 1s linear infinite; }
+    .overall-loading { margin-top: 16px; border-top: 1px solid var(--app-border-color); padding-top: 16px; font-size: 0.9rem; }
 
-    /* --- Table Styles (Non-Responsive/Scrolling) --- */
+    /* --- ##### TABLE STYLES - FORCED FIT, NO SCROLL ##### --- */
+
+    /* 1. The Wrapper: Set overflow to hidden */
     .table-wrapper {
-        overflow-x: auto; /* CRUCIAL: Enables horizontal scrolling */
-        width: 100%;      /* Ensure wrapper takes full width OF THE CARD */
+        overflow-x: hidden; /* <<< CHANGED: Prevents scrollbar, cuts off overflow */
+        width: 100%;
         margin-top: 16px;
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
+    /* Remove scrollbar styling as it's hidden now */
+    /* .table-wrapper::-webkit-scrollbar { ... } */
+
+
+    /* 2. The Table: NO min-width, use fixed layout */
     table {
-        width: 100%;              /* Table takes full width OF THE WRAPPER */
+        width: 100%;
         border-collapse: collapse;
-        min-width: 450px;         /* Minimum width before scrollbar appears - ADJUST AS NEEDED */
-        font-size: 0.85rem;
+        /* REMOVED min-width */
+        font-size: 0.9rem; /* Adjusted */
+        table-layout: fixed; /* ADDED: Important for controlling layout */
     }
+
+    /* 3. Cells and Headers: Allow wrapping, break words, align top */
     th,
     td {
-        padding: 9px 8px;
+        padding: 8px 8px; /* Adjusted */
         text-align: left;
         border-bottom: 1px solid var(--app-border-color);
-        vertical-align: middle;
-        white-space: nowrap;     /* CRUCIAL: Prevents text wrapping */
+        vertical-align: top;   /* CHANGED: Align top */
+        white-space: normal; /* CHANGED: Allow wrapping */
+        overflow-wrap: break-word; /* ADDED: Break long words */
+        color: var(--app-text-color);
     }
+
+    /* 4. Header Specifics */
     th {
         background-color: var(--app-secondary-bg-color);
         font-weight: 600;
         color: var(--app-hint-color);
-        font-size: 0.75rem;
+        font-size: 0.8rem; /* Adjusted */
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        position: sticky;
-        top: 0;
-        z-index: 1;
+        /* Sticky header makes less sense without scroll */
     }
-    tbody tr:last-child td {
-         border-bottom: none;
-    }
+    tbody tr:last-child td { border-bottom: none; }
 
     /* --- Column Content Styles --- */
-    .op-id { font-family: "Courier New", Courier, monospace; font-size: 0.8em; color: var(--app-hint-color); }
-    .tx-type { font-weight: 500; color: var(--app-text-color); }
+    .op-id {
+        font-family: monospace;
+        font-size: 0.85em; /* Adjusted */
+        color: var(--app-hint-color);
+        word-break: break-all; /* ADDED: Force break long IDs */
+    }
+    .tx-type { font-weight: 500; }
     .tx-amount { text-align: right; font-weight: 500; }
-    th:nth-child(3) { text-align: right; } /* Amount Header */
+    th:nth-child(3) { text-align: right; }
+
+    /* Status Column */
     .tx-status { text-align: center; }
-    th:nth-child(4) { text-align: center; } /* Status Header */
-    /* --- End Column Styles --- */
+    th:nth-child(4) { text-align: center; }
 
     /* --- Status Badge & Spinner --- */
-    .status-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.9em; font-weight: 600; line-height: 1.2; text-transform: capitalize; margin-right: 4px; vertical-align: middle; white-space: nowrap; }
-    .status-spinner { display: inline-block; vertical-align: middle; width: 0.9em; height: 0.9em; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; opacity: 0.7; }
-    /* Color coding the badges */
+    .status-badge { display: inline-block; padding: 4px 10px; /* Adjusted */ border-radius: 16px; font-size: 0.8em; font-weight: 600; line-height: 1.3; text-transform: capitalize; margin-right: 6px; vertical-align: middle; white-space: nowrap; border: 1px solid transparent; }
+    .status-spinner { display: inline-block; vertical-align: middle; width: 0.9em; height: 0.9em; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; opacity: 0.8; }
     .status-completed .status-badge { background-color: var(--status-success-color); color: var(--status-success-text); }
     .status-pending .status-badge { background-color: var(--status-pending-color); color: var(--status-pending-text); }
-    .status-processing .status-badge { background-color: var(--status-processing-color); color: var(--status-processing-text); }
+    .status-processing .status-badge { background-color: var(--status-processing-color); color: var(--status-processing-text); border-color: var(--status-processing-color); }
     .status-failed .status-badge { background-color: var(--status-danger-color); color: var(--status-danger-text); }
     .status-unknown .status-badge { background-color: var(--status-unknown-color); color: var(--status-unknown-text); }
-    .error-details { font-size: 0.8em; color: var(--status-danger-color); display: block; margin-top: 4px; text-align: center; white-space: normal; word-wrap: break-word; line-height: 1.3; }
-    /* --- End Status --- */
+    .status-pending .status-spinner, .status-processing .status-spinner { border-color: var(--app-hint-color); border-top-color: var(--app-text-color); }
+
+    .error-details { font-size: 0.8em; color: var(--status-danger-color); display: block; margin-top: 4px; text-align: center; white-space: normal; overflow-wrap: break-word; word-break: break-all; line-height: 1.3; max-width: 100%; margin-left: auto; margin-right: auto; }
 
     /* --- Nav Section --- */
-    .nav-section { text-align: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--app-border-color); }
-    .nav-link { color: var(--app-link-color); font-size: 0.9rem; font-weight: 500; text-decoration: none; transition: opacity 0.2s ease; padding: 8px 12px; border-radius: 6px; display: inline-block; }
-    .nav-link:hover, .nav-link:active { opacity: 0.7; text-decoration: none; }
-    /* --- End Nav --- */
+    .nav-section { text-align: center; margin-top: 24px; /* Adjusted */ padding-top: 16px; border-top: 1px solid var(--app-border-color); }
+    .nav-link { color: var(--app-link-color); font-size: 0.95rem; /* Adjusted */ font-weight: 500; text-decoration: none; transition: opacity 0.2s ease; padding: 8px 12px; border-radius: 8px; display: inline-block; }
+    .nav-link:hover, .nav-link:active { opacity: 0.7; text-decoration: underline; }
 
     /* --- Keyframes --- */
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* --- Responsive Adjustments for Mini App Width --- */
-    /* Apply adjustments below a certain width, e.g., 480px */
-    /* This mirrors the logic from Style B for container width */
+    /* --- Media Query for Width Adjustment --- */
     @media (max-width: 480px) {
-         :global(body) {
-             padding: 6px; /* Optional: Slightly reduce body padding */
-         }
-
         .wallet-container {
-            /* CRITICAL FIX: Allow the main container to shrink below its default max-width */
-            /* No max-width here, let it be 100% of the viewport */
-            max-width: 100%;
+            max-width: 100%; /* Use full width */
         }
-
-        .card {
-            padding: 10px; /* Optional: Slightly reduce card padding */
-            border-radius: 10px; /* Optional: Adjust radius */
-        }
-
-        h1 {
-            font-size: 1.4rem; /* Optional: Slightly smaller heading */
-        }
-
-        /* Optional: Adjust table text size slightly if needed for density */
-        /* table { font-size: 0.8rem; } */
-        /* th, td { padding: 8px 6px; } */
-
-        /* Keep the table scrolling via .table-wrapper */
-        /* No changes needed for table, th, td display properties */
+        /* Optional: Other mobile adjustments */
+         :global(body) { padding: 12px; }
+         h1 { font-size: 1.4rem; }
+         .card { padding: 12px; }
+         table { font-size: 0.8rem; }
+         th, td { padding: 8px 6px; }
+         .nav-link { font-size: 0.9rem; }
     }
 
 </style>
