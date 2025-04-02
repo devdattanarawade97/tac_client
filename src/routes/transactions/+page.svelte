@@ -182,9 +182,14 @@
 			const fetchedTransactions = await getLatestTransactions(address);
 			console.log("Fetched transactions: ", fetchedTransactions);
 
+			if(!fetchedTransactions){
+				isLoading=false;
+				return
+			}
+
 			// Initialize status if missing (assuming 'pending' if not provided)
 			// Ensure each transaction has a unique 'id' field for tracking and keys
-			if (fetchedTransactions.length > 0) {
+			if (!!fetchedTransactions &&fetchedTransactions.length > 0) {
 				transactions = fetchedTransactions.map((tx) => ({
 					...tx,
 					operationId:
@@ -196,9 +201,8 @@
 					currency: tx.currency || "",
 					errorMsg: tx.errorMsg || null,
 				}));
-			}
 
-			isLoading = false; // Show initial list
+				isLoading = false; // Show initial list
 
 			// --- Start tracking for pending transactions ---
 			const pendingTransactions = transactions.filter(
@@ -214,6 +218,9 @@
 				console.log("Starting tracking for tx: ", tx.operationId);
 			 trackTransaction(tx); // Pass the full transaction object
 			});
+			}
+
+			
 		} catch (err) {
 			console.error("Failed to fetch or process initial transactions:", err);
 			error = err instanceof Error ? err : new Error(String(err)); // Ensure error is an Error object
@@ -263,27 +270,27 @@
 						</thead>
 						<tbody>
 							{#each updatedTransactions as tx (tx.operationId)}
-								<tr>
-									<td data-label="Op ID" class="op-id"
-										>{formatOpId(tx.operationId)}</td
-									>
-									<td data-label="Type" class="tx-type">{tx.type}</td>
-									<td data-label="Amount" class="tx-amount"
-										>{tx.amount} {tx.currency}</td
-									>
-									<td data-label="Status" class="tx-status status-{tx.status}">
-										<div class="status-badge">{tx.status}</div>
-										{#if tx.status === "pending" || tx.status === "processing"}
-											<span class="status-spinner"></span>
-										{/if}
-										{#if tx.status === "failed" && tx.errorMsg}
-											<span class="error-details" title={tx.errorMsg}
-												>{tx.errorMsg}</span
-											>
-										{/if}
-									</td>
-								</tr>
-							{/each}
+							<tr>
+								<td data-label="Op ID" class="op-id"
+									>{formatOpId(tx.operationId)}</td
+								>
+								<td data-label="Type" class="tx-type">{tx.type}</td>
+								<td data-label="Amount" class="tx-amount"
+									>{tx.amount} {tx.currency}</td
+								>
+								<td data-label="Status" class="tx-status status-{tx.status}">
+									<div class="status-badge">{tx.status}</div>
+									{#if tx.status === "pending" || tx.status === "processing"}
+										<span class="status-spinner"></span>
+									{/if}
+									{#if tx.status === "failed" && tx.errorMsg}
+										<span class="error-details" title={tx.errorMsg}
+											>{tx.errorMsg}</span
+										>
+									{/if}
+								</td>
+							</tr>
+						{/each}
 						</tbody>
 					</table>
 				</div>

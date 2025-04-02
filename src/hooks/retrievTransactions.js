@@ -14,7 +14,7 @@ export async function getLatestTransactions(userId) {
      
     
     // 2. Define API URL (including userId in the path)
-    const apiUrl = `${PUBLIC_BACKEND_URI}/api/transactions/${userId}`;
+    const apiUrl = `${PUBLIC_BACKEND_URI}/api/transactions?userid=${userId}`;
     let responseData = null; // To store the parsed response array
 
     console.log(`Workspaceing latest transactions for user: ${userId}...`);
