@@ -317,406 +317,6 @@
 		</div>
 	</div>
 </main>
-
-<!-- <style>
-	/* --- TMA Compatibility Base Styles --- */
-	:root {
-		/* Map semantic names to Telegram Theme variables with fallbacks */
-		--app-bg-color: var(--tg-theme-bg-color, #ffffff);
-		--app-secondary-bg-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
-		--app-text-color: var(--tg-theme-text-color, #000000);
-		--app-hint-color: var(--tg-theme-hint-color, #6b7280);
-		--app-link-color: var(--tg-theme-link-color, #007aff);
-		--app-button-color: var(--tg-theme-button-color, #007aff);
-		--app-button-text-color: var(--tg-theme-button-text-color, #ffffff);
-		--app-border-color: var(
-			--tg-theme-secondary-bg-color,
-			#d1d5db
-		); /* Use secondary bg as border */
-
-		/* Status colors (using common web defaults as fallbacks) */
-		--status-success-color: var(
-			--tg-theme-button-color,
-			#34d399
-		); /* Often green/accent */
-		--status-success-text: var(--tg-theme-button-text-color, #ffffff);
-		--status-danger-color: #f87171; /* Red - Telegram doesn't have a standard 'danger' variable */
-		--status-danger-text: #ffffff;
-		--status-pending-color: #f59e0b; /* Amber/Orange */
-		--status-pending-text: #1f2937; /* Dark text for readability on amber */
-		--status-processing-color: var(
-			--tg-theme-link-color,
-			#4a90e2
-		); /* Blue/Link color */
-		--status-processing-text: #ffffff;
-	}
-
-	:global(body) {
-		/* Use Telegram's font, remove explicit font-family */
-		margin: 0;
-		padding: 10px; /* Reduced padding for TMA */
-		background-color: var(
-			--app-secondary-bg-color
-		); /* Use secondary for body background */
-		color: var(--app-text-color);
-		min-height: 100vh;
-		-webkit-font-smoothing: antialiased;
-		-moz-osx-font-smoothing: grayscale;
-		font-size: 16px;
-		box-sizing: border-box;
-		/* Ensure touch scrolling works smoothly */
-		-webkit-overflow-scrolling: touch;
-	}
-
-	* {
-		box-sizing: border-box;
-		margin: 0;
-		padding: 0;
-	}
-
-	main {
-		display: flex;
-		justify-content: center;
-		align-items: flex-start;
-		min-height: calc(100vh - 20px); /* Account for body padding */
-		padding-top: 10px; /* Reduced top padding */
-	}
-
-	.wallet-container {
-		width: 100%;
-		max-width: 480px; /* Slightly narrower for better mobile feel */
-	}
-
-	h1 {
-		font-size: 1.6rem; /* Slightly smaller */
-		font-weight: 600; /* Slightly less bold */
-		color: var(--app-text-color);
-		text-align: center;
-		margin-bottom: 20px; /* Reduced margin */
-	}
-
-	.card {
-		width: 100%;
-		background: var(--app-bg-color);
-		border-radius: 12px; /* Consistent rounded corners */
-		/* Softer shadow, using hint color for subtlety */
-		box-shadow: 0 4px 12px rgba(var(--tg-theme-hint-color, #000000), 0.1);
-		padding: 16px; /* Slightly reduced padding */
-		border: 1px solid var(--app-border-color);
-	}
-	/* --- End Base Styles --- */
-
-	/* --- Loading/Error/Empty States --- */
-	.loading-indicator,
-	.error-message,
-	.no-transactions,
-	.overall-loading {
-		text-align: center;
-		padding: 25px 10px;
-		font-size: 0.95rem;
-		color: var(--app-hint-color);
-	}
-	.error-message {
-		color: var(--status-danger-color); /* Use danger color */
-		font-weight: 500;
-	}
-	.loading-indicator .spinner,
-	.overall-loading .spinner {
-		display: inline-block;
-		vertical-align: middle;
-		margin-left: 8px;
-		width: 16px;
-		height: 16px;
-		border: 2px solid var(--app-hint-color);
-		border-top-color: var(--app-link-color); /* Use link color for spinner */
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-	.overall-loading {
-		margin-top: 16px;
-		border-top: 1px solid var(--app-border-color);
-		padding-top: 16px;
-	}
-	/* --- End Loading --- */
-
-	/* --- Table Styles --- */
-	.table-wrapper {
-		overflow-x: auto; /* Allow horizontal scroll on table if needed */
-		margin: 0 -16px; /* Extend wrapper slightly if card has padding */
-		padding: 0 16px;
-	}
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		margin-top: 16px;
-		font-size: 0.9rem;
-		/* table-layout: fixed; */ /* REMOVED - Allow flexible columns */
-		min-width: 300px; /* Minimum width before scroll appears */
-	}
-	th,
-	td {
-		padding: 10px 8px; /* Reduced padding */
-		text-align: left;
-		border-bottom: 1px solid var(--app-border-color);
-		vertical-align: middle;
-		white-space: nowrap; /* Keep nowrap for default table view */
-	}
-	th {
-		background-color: var(
-			--app-secondary-bg-color
-		); /* Use secondary bg for header */
-		font-weight: 600;
-		color: var(--app-hint-color);
-		font-size: 0.8rem; /* Smaller header text */
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-	}
-	tr:last-child td {
-		border-bottom: none;
-	}
-
-	/* --- Column Content Styles --- */
-	/* REMOVED fixed width percentages */
-
-	.op-id {
-		font-family: "Courier New", Courier, monospace; /* Keep monospace for IDs */
-		font-size: 0.8rem;
-		color: var(--app-hint-color);
-	}
-	.tx-type {
-		font-weight: 500;
-		color: var(--app-text-color);
-	}
-	.tx-amount {
-		text-align: right;
-		font-weight: 500;
-		padding-right: 10px;
-	}
-	th:nth-child(3) {
-		/* Amount Header */
-		text-align: right;
-		padding-right: 10px;
-	}
-	.tx-status {
-		text-align: center;
-		white-space: normal; /* Allow status text to wrap if needed */
-	}
-	th:nth-child(4) {
-		/* Status Header */
-		text-align: center;
-	}
-	/* --- End Column Styles --- */
-
-	/* --- Status Badge & Spinner --- */
-	.status-badge {
-		display: inline-block;
-		padding: 3px 8px;
-		border-radius: 12px; /* Pill shape */
-		font-size: 0.75rem;
-		font-weight: 500;
-		line-height: 1.2;
-		text-transform: capitalize;
-		margin-right: 4px; /* Space for spinner */
-		vertical-align: middle;
-	}
-	.status-spinner {
-		display: inline-block;
-		vertical-align: middle;
-		width: 12px;
-		height: 12px;
-		border: 2px solid currentColor; /* Use text color of parent */
-		border-top-color: transparent;
-		border-radius: 50%;
-		animation: spin 0.8s linear infinite;
-		opacity: 0.7;
-	}
-
-	/* Color coding the badges */
-	.status-completed .status-badge {
-		background-color: var(--status-success-color);
-		color: var(--status-success-text);
-	}
-	.status-pending .status-badge,
-	.status-processing .status-badge {
-		/* Group pending/processing visually */
-		background-color: var(--status-pending-color);
-		color: var(--status-pending-text);
-	}
-	/* Optional: Different color for processing if desired */
-	/* .status-processing .status-badge {
-       background-color: var(--status-processing-color);
-       color: var(--status-processing-text);
-   } */
-	.status-failed .status-badge {
-		background-color: var(--status-danger-color);
-		color: var(--status-danger-text);
-	}
-	.status-unknown .status-badge {
-		/* Add style for unknown */
-		background-color: var(--app-hint-color);
-		color: var(--app-bg-color);
-	}
-
-	.error-details {
-		font-size: 0.75rem; /* Smaller error text */
-		color: var(--status-danger-color);
-		display: block;
-		margin-top: 4px;
-		max-width: 150px;
-		margin-left: auto;
-		margin-right: auto;
-		line-height: 1.3;
-		text-align: center;
-		white-space: normal;
-		word-wrap: break-word;
-	}
-
-	/* --- Nav Section --- */
-	.nav-section {
-		text-align: center;
-		margin-top: 20px;
-		padding-top: 16px;
-		border-top: 1px solid var(--app-border-color);
-	}
-	.nav-link {
-		color: var(--app-link-color);
-		font-size: 0.9rem;
-		font-weight: 500; /* Use 500 for links */
-		text-decoration: none;
-		transition: opacity 0.2s ease;
-		padding: 8px 12px;
-		border-radius: 6px;
-		display: inline-block;
-	}
-	.nav-link:hover {
-		/* Hover might not be relevant on touch devices, use active? */
-		/* color: var(--app-link-color); */
-		opacity: 0.8; /* Slight fade on press/hover */
-		text-decoration: none;
-	}
-	.nav-link:active {
-		opacity: 0.6;
-	}
-
-	/* --- Keyframes --- */
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	/* --- Responsive Stacking for Narrow Screens (TMA context) --- */
-	@media (max-width: 550px) {
-		/* Adjusted breakpoint slightly */
-		:global(body) {
-			padding: 8px; /* Further reduce padding on small screens */
-		}
-		.card {
-			padding: 12px;
-			border-radius: 10px;
-		}
-		h1 {
-			font-size: 1.4rem;
-			margin-bottom: 16px;
-		}
-
-		.table-wrapper {
-			overflow-x: hidden; /* Hide horizontal scroll in stacked view */
-			margin: 0;
-			padding: 0;
-		}
-		table {
-			min-width: 0;
-			font-size: 0.9rem;
-			table-layout: auto;
-			margin-top: 12px;
-		}
-		th,
-		td {
-			white-space: normal;
-			padding: 8px 6px;
-		} /* Allow wrapping, reduce padding */
-		thead {
-			display: none;
-		} /* Hide table header */
-
-		tr {
-			display: block;
-			margin-bottom: 10px;
-			border: 1px solid var(--app-border-color);
-			border-radius: 8px;
-			overflow: hidden;
-			background: var(--app-bg-color);
-			/* Keep a very subtle shadow */
-			box-shadow: 0 2px 4px rgba(var(--tg-theme-hint-color, #000000), 0.05);
-		}
-		td {
-			display: flex; /* Use flex for alignment */
-			align-items: center; /* Vertically center */
-			justify-content: flex-end; /* Align value to the right */
-			text-align: right;
-			border-bottom: 1px dashed var(--app-border-color); /* Lighter separator */
-			position: relative;
-			padding: 10px 10px 10px 40%; /* Space for label */
-			min-height: 40px;
-		}
-		td:last-child {
-			border-bottom: none;
-		}
-
-		td::before {
-			content: attr(data-label); /* Show label */
-			position: absolute;
-			left: 10px;
-			top: 50%;
-			transform: translateY(-50%);
-			width: 35%; /* Adjust width for label */
-			padding-right: 10px;
-			font-weight: 600;
-			text-align: left;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			color: var(--app-hint-color);
-			font-size: 0.8rem;
-		}
-
-		.nav-link {
-			font-size: 0.85rem;
-		}
-
-		/* Adjust specific cell alignments for stacked view */
-		.op-id {
-			font-size: 0.75rem;
-			justify-content: flex-end;
-		}
-		.tx-amount {
-			justify-content: flex-end;
-		}
-
-		/* Stacked status alignment */
-		td[data-label="Status"] {
-			/* Flex alignment should work fine here now with badge/spinner */
-			justify-content: flex-end; /* Align badge/spinner right */
-			/* If error needs to stack below badge: */
-			/* flex-wrap: wrap; */ /* Allows error to wrap below */
-		}
-
-		td[data-label="Status"] .error-details {
-			/* Ensure error message is aligned correctly in flex context */
-			flex-basis: 100%; /* Make error take full width below badge */
-			text-align: right;
-			margin: 4px 0 0 0;
-			max-width: none;
-			font-size: 0.7rem;
-		}
-		.nav-section {
-			margin-top: 16px;
-			padding-top: 12px;
-		}
-	}
-</style> -->
-
 <style>
     /* --- TMA Compatibility Base Styles --- */
     :root {
@@ -728,33 +328,31 @@
         --app-link-color: var(--tg-theme-link-color, #007aff);
         --app-button-color: var(--tg-theme-button-color, #007aff);
         --app-button-text-color: var(--tg-theme-button-text-color, #ffffff);
-        --app-border-color: var(--tg-theme-secondary-bg-color, #d1d5db); /* Use secondary bg as border */
+        --app-border-color: var(--tg-theme-secondary-bg-color, #e5e7eb); /* Slightly adjusted fallback border */
 
-        /* Status colors (using common web defaults as fallbacks) */
-        --status-success-color: #34d399; /* Green */
+        /* Status colors */
+        --status-success-color: #34d399;
         --status-success-text: #ffffff;
-        --status-danger-color: #f87171; /* Red */
+        --status-danger-color: #f87171;
         --status-danger-text: #ffffff;
-        --status-pending-color: #f59e0b; /* Amber/Orange */
-        --status-pending-text: #1f2937; /* Dark text for readability on amber */
-        --status-processing-color: #60a5fa; /* Blue */
+        --status-pending-color: #f59e0b;
+        --status-pending-text: #1f2937;
+        --status-processing-color: #60a5fa;
         --status-processing-text: #ffffff;
-        --status-unknown-color: var(--app-hint-color, #6b7280); /* Grey/Hint */
+        --status-unknown-color: var(--app-hint-color, #6b7280);
         --status-unknown-text: var(--app-bg-color, #ffffff);
     }
 
     :global(body) {
-        /* Use Telegram's font, remove explicit font-family */
         margin: 0;
-        padding: 8px; /* Reduced padding for TMA */
-        background-color: var(--app-secondary-bg-color); /* Use secondary for body background */
+        padding: 8px; /* Consistent padding */
+        background-color: var(--app-secondary-bg-color);
         color: var(--app-text-color);
         min-height: 100vh;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        font-size: 15px; /* Slightly smaller base font for TMA */
+        font-size: 15px;
         box-sizing: border-box;
-        /* Ensure touch scrolling works smoothly */
         -webkit-overflow-scrolling: touch;
     }
 
@@ -768,30 +366,29 @@
         display: flex;
         justify-content: center;
         align-items: flex-start;
-        min-height: calc(100vh - 16px); /* Account for body padding */
-        padding-top: 8px; /* Reduced top padding */
+        min-height: calc(100vh - 16px);
+        padding-top: 8px;
     }
 
     .wallet-container {
-        width: 100%;
-        max-width: 600px; /* Allow slightly wider on larger TMAs if needed */
+      
+        max-width: 490px;
     }
 
     h1 {
-        font-size: 1.5rem; /* Slightly smaller */
+        font-size: 1.5rem;
         font-weight: 600;
         color: var(--app-text-color);
         text-align: center;
-        margin-bottom: 16px; /* Reduced margin */
+        margin-bottom: 16px;
     }
 
     .card {
         width: 100%;
         background: var(--app-bg-color);
-        border-radius: 12px; /* Consistent rounded corners */
-        /* Softer shadow, using hint color for subtlety */
+        border-radius: 12px;
         box-shadow: 0 2px 8px rgba(var(--tg-theme-hint-color, #000000), 0.08);
-        padding: 12px; /* Slightly reduced padding */
+        padding: 12px;
         border: 1px solid var(--app-border-color);
     }
     /* --- End Base Styles --- */
@@ -807,7 +404,7 @@
         color: var(--app-hint-color);
     }
     .error-message {
-        color: var(--status-danger-color); /* Use danger color */
+        color: var(--status-danger-color);
         font-weight: 500;
     }
     .loading-indicator .spinner,
@@ -815,10 +412,10 @@
         display: inline-block;
         vertical-align: middle;
         margin-left: 8px;
-        width: 1em; /* Size relative to font */
+        width: 1em;
         height: 1em;
         border: 2px solid var(--app-hint-color);
-        border-top-color: var(--app-link-color); /* Use link color for spinner */
+        border-top-color: var(--app-link-color);
         border-radius: 50%;
         animation: spin 1s linear infinite;
     }
@@ -829,63 +426,67 @@
     }
     /* --- End Loading --- */
 
-    /* --- Table Styles --- */
+    /* --- Table Styles (Non-Responsive/Scrolling) --- */
     .table-wrapper {
-        overflow-x: auto; /* Allow horizontal scroll on table if needed */
-        /* Negative margins removed, rely on card padding */
+        overflow-x: auto; /* CRUCIAL: Enables horizontal scrolling */
+        width: 100%;      /* Ensure wrapper takes full width */
         margin-top: 16px;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
     table {
-        width: 100%;
+        width: 100%;              /* Allow table to grow */
         border-collapse: collapse;
-        /* table-layout: auto; /* Default, allows flexible columns */
-        min-width: 320px; /* Minimum width before scroll appears on wider screens */
-        font-size: 0.85rem; /* Smaller table font */
+        min-width: 450px;         /* Minimum width before scrollbar appears - ADJUST AS NEEDED */
+                                  /* Increase this if columns look too squished */
+        font-size: 0.85rem;
     }
     th,
     td {
-        padding: 8px 6px; /* Reduced padding */
+        padding: 9px 8px;          /* Adjusted padding slightly */
         text-align: left;
         border-bottom: 1px solid var(--app-border-color);
         vertical-align: middle;
-        white-space: nowrap; /* Default: prevent wrapping, rely on scroll */
+        white-space: nowrap;     /* CRUCIAL: Prevents text wrapping */
     }
     th {
-        background-color: var(--app-secondary-bg-color); /* Use secondary bg for header */
+        background-color: var(--app-secondary-bg-color);
         font-weight: 600;
         color: var(--app-hint-color);
-        font-size: 0.75rem; /* Smaller header text */
+        font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        position: sticky; /* Optional: make header sticky when scrolling vertically */
-        top: 0; /* Required for sticky */
-        z-index: 1; /* Keep header above content */
+        position: sticky;          /* Keep header visible during vertical scroll */
+        top: 0;
+        z-index: 1;
     }
-    tr:last-child td {
-        border-bottom: none;
+    /* Remove bottom border from last row only */
+    tbody tr:last-child td {
+         border-bottom: none;
     }
 
-    /* --- Column Content Styles (Default View) --- */
-    /* No fixed widths */
-
+    /* --- Column Content Styles --- */
     .op-id {
         font-family: "Courier New", Courier, monospace;
-        font-size: 0.8em; /* Relative to parent TD font size */
+        font-size: 0.8em;
         color: var(--app-hint-color);
+         /* Can add min-width here if needed, e.g., min-width: 80px; */
     }
     .tx-type {
         font-weight: 500;
         color: var(--app-text-color);
+         /* Can add min-width here if needed, e.g., min-width: 70px; */
     }
     .tx-amount {
         text-align: right;
         font-weight: 500;
+         /* Can add min-width here if needed, e.g., min-width: 80px; */
     }
     th:nth-child(3) { /* Amount Header */
         text-align: right;
     }
     .tx-status {
         text-align: center;
+         /* Can add min-width here if needed, e.g., min-width: 100px; */
     }
     th:nth-child(4) { /* Status Header */
         text-align: center;
@@ -896,21 +497,21 @@
     .status-badge {
         display: inline-block;
         padding: 3px 8px;
-        border-radius: 12px; /* Pill shape */
-        font-size: 0.9em; /* Relative to parent TD font size */
+        border-radius: 12px;
+        font-size: 0.9em;
         font-weight: 600;
         line-height: 1.2;
         text-transform: capitalize;
-        margin-right: 4px; /* Space for spinner */
+        margin-right: 4px;
         vertical-align: middle;
         white-space: nowrap; /* Keep badge text on one line */
     }
     .status-spinner {
         display: inline-block;
         vertical-align: middle;
-        width: 0.9em; /* Relative size */
+        width: 0.9em;
         height: 0.9em;
-        border: 2px solid currentColor; /* Use text color of parent */
+        border: 2px solid currentColor;
         border-top-color: transparent;
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
@@ -925,15 +526,15 @@
     .status-unknown .status-badge { background-color: var(--status-unknown-color); color: var(--status-unknown-text); }
 
     .error-details {
-        font-size: 0.8em; /* Smaller error text */
+        font-size: 0.8em;
         color: var(--status-danger-color);
-        display: block; /* Takes its own line */
+        display: block; /* Still block to appear below badge if status cell wraps (though we set nowrap now) */
         margin-top: 4px;
-        text-align: center; /* Center error text within the status cell */
-        white-space: normal; /* Allow error message to wrap */
+        text-align: center;
+        white-space: normal; /* Allow error message itself to wrap */
         word-wrap: break-word;
         line-height: 1.3;
-        /* Max width can be added if needed, but often better to let it flow */
+        /* If td has nowrap, this might still be constrained. Tooltip might be better. */
     }
 
     /* --- Nav Section --- */
@@ -954,7 +555,7 @@
         display: inline-block;
     }
     .nav-link:hover, .nav-link:active {
-        opacity: 0.7; /* Fade on press/hover */
+        opacity: 0.7;
         text-decoration: none;
     }
 
@@ -965,110 +566,12 @@
         }
     }
 
-    /* --- Responsive Stacking for Narrow Screens (TMA context) --- */
-    @media (max-width: 550px) {
-        :global(body) {
-            padding: 6px; /* Further reduce padding */
-        }
-        .card {
-            padding: 10px;
-            border-radius: 10px;
-        }
-        h1 {
-            font-size: 1.3rem;
-            margin-bottom: 12px;
-        }
+    /*
+     * --- Responsive Stacking Block Removed ---
+     * The @media (max-width: 550px) block that previously
+     * converted the table to stacked cards has been removed
+     * to ensure the table layout persists on all screen sizes,
+     * relying on horizontal scrolling via .table-wrapper.
+     */
 
-        .table-wrapper {
-            overflow-x: hidden; /* Hide horizontal scroll */
-            margin-top: 12px;
-        }
-        table {
-            min-width: 0; /* No min-width needed */
-            font-size: 0.85rem; /* Consistent font size */
-        }
-        thead {
-            display: none; /* Hide table header */
-        }
-        tr {
-            display: block; /* Stack rows */
-            margin-bottom: 8px; /* Space between cards */
-            border: 1px solid var(--app-border-color);
-            border-radius: 8px;
-            overflow: hidden; /* Clip content */
-            background: var(--app-bg-color);
-            box-shadow: 0 1px 3px rgba(var(--tg-theme-hint-color, #000000), 0.06);
-        }
-        td {
-            display: flex; /* Use flex for label/value alignment */
-            align-items: center;
-            justify-content: flex-end; /* Align value to the right */
-            text-align: right; /* Ensure text within aligns right */
-            border-bottom: 1px dashed var(--app-border-color); /* Lighter separator */
-            position: relative; /* For positioning the label */
-            padding: 8px 8px 8px 40%; /* Top, Right, Bottom, Left (space for label) */
-            min-height: 36px; /* Slightly smaller min-height */
-            white-space: normal; /* IMPORTANT: Allow content wrapping */
-        }
-        tr td:last-child {
-            border-bottom: none; /* No border on last cell of card */
-        }
-
-        td::before {
-            content: attr(data-label); /* Get label text */
-            position: absolute;
-            left: 8px; /* Padding from left edge */
-            top: 50%;
-            transform: translateY(-50%);
-            width: 35%; /* Adjust width for label area */
-            padding-right: 8px; /* Space between label and value */
-            font-weight: 600;
-            text-align: left;
-            white-space: nowrap; /* Prevent label itself from wrapping */
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: var(--app-hint-color);
-            font-size: 0.9em; /* Slightly smaller label */
-        }
-
-        /* Adjust specific cell alignments/content if needed in stacked view */
-        .op-id {
-            font-size: 0.9em; /* Keep readable */
-            justify-content: flex-end;
-        }
-        .tx-amount {
-             justify-content: flex-end;
-             /* Could add word-break: break-all; if very long numbers occur */
-        }
-
-        /* Stacked status alignment */
-        td[data-label="Status"] {
-            /* Flex behavior should handle badge/spinner alignment */
-            /* If error needs to reliably stack below, add flex-wrap */
-             flex-wrap: wrap; /* Allow wrapping if error message is present */
-             justify-content: flex-end;
-             padding-top: 10px; /* Slightly more top/bottom padding if wrapping */
-             padding-bottom: 10px;
-        }
-
-         /* Ensure badge/spinner container stays aligned right */
-        td[data-label="Status"] > div:first-of-type { /* Target the status-badge div */
-             flex-shrink: 0; /* Prevent badge from shrinking */
-        }
-
-        td[data-label="Status"] .error-details {
-            flex-basis: 100%; /* Make error take full width below badge/spinner */
-            text-align: right;
-            margin: 4px 0 0 0; /* Margin top, clear others */
-            font-size: 0.8em; /* Smaller error text */
-        }
-
-        .nav-section {
-             margin-top: 16px;
-             padding-top: 12px;
-        }
-        .nav-link {
-            font-size: 0.85rem;
-        }
-    }
 </style>
