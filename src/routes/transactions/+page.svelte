@@ -17,7 +17,8 @@
 	// Assuming OperationTracker and Network are available globally or imported
 	// Ensure these are correctly referenced or imported based on your project setup
 	// e.g., import { OperationTracker, Network } from 'your-sdk-package';
-  import {saveTransaction} from '../../hooks/saveTransaction'
+	import { postTransaction } from "../../hooks/saveTransaction";
+	import { updateTransactionStatus } from "../../hooks/updateTransaction";
 	let loadingEquivalent = true;
 
 	/**
@@ -34,6 +35,7 @@
 
 	/** @type {Transaction[]} */
 	let transactions = [];
+	$:updatedTransactions=transactions;
 	let isLoading = true;
 	/** @type {Error | null} */
 	let error = null;
@@ -45,40 +47,22 @@
 		console.log("address ton from store updated: ", address);
 	});
 
-	// Function to save transaction (placeholder - replace with your actual logic if needed)
-	function saveLocalTransaction(userAddress, txToSave) {
-		console.log(`Simulating save for address ${userAddress}:`, txToSave);
-		// In a real app, you might update localStorage, send to a backend, or update a reactive store
-		// For this example, let's update the local 'transactions' array reactively
-		const index = transactions.findIndex((t) => t.id === txToSave.id);
-		if (index !== -1) {
-			transactions[index] = { ...transactions[index], ...txToSave };
-			transactions = transactions; // Trigger Svelte reactivity
-			console.log("Local transaction state updated.");
-		} else {
-			console.warn(
-				"Transaction to update not found in local state:",
-				txToSave.id,
-			);
-		}
-	}
-
 	async function trackTransaction(tx) {
 		// Use Testnet or Mainnet based on your environment
 		const tracker = new OperationTracker(Network.Testnet); // Or Network.Mainnet
 
 		try {
-			console.log(`Tracking Operation ID: ${tx.id}`); // Use tx.id as defined in typedef
+			console.log(`Tracking Operation ID: ${tx.operationId}`); // Use tx.operationId as defined in typedef
 			let attempts = 0;
 			const maxAttempts = 30; // ~2.5 minutes total wait time
 			const delayMs = 5000; // 5 seconds
 
 			// Find the transaction in the local array to update its status directly
-			let localTx = transactions.find((t) => t.id === tx.id);
+			let localTx = transactions.find((t) => t.operationId === tx.operationId);
 			if (!localTx) {
 				console.error(
 					"Cannot track transaction not found in local list:",
-					tx.id,
+					tx.operationId,
 				);
 				return;
 			}
@@ -86,9 +70,9 @@
 			while (attempts < maxAttempts && localTx.status === "pending") {
 				// Only track if pending
 				try {
-					const opStatus = await tracker.getOperationStatus(tx.id); // Use tx.id
+					const opStatus = await tracker.getOperationStatus(tx.operationId); // Use tx.operationId
 					console.log(
-						`Attempt ${attempts + 1}: Status for ${tx.id}:`,
+						`Attempt ${attempts + 1}: Status for ${tx.operationId}:`,
 						opStatus.status,
 					);
 
@@ -100,9 +84,12 @@
 							newStatus = "completed";
 							loadingEquivalent = false; // Assuming this global flag indicates overall loading
 							localTx.status = newStatus;
-							saveLocalTransaction(address, localTx); // Persist the change (even if just updating local state for now)
-              saveTransaction(address, localTx)
-							transactions = [...transactions]; // Trigger Svelte reactivity by creating a new array reference
+							// --- !!! TRIGGER SVELTE REACTIVITY !!! ---
+							// Assigning the array back to itself (or a copy) tells Svelte it changed.
+							// Using spread [...transactions] is often clearer and promotes immutability.
+							
+							await updateTransactionStatus(tx.operationId, newStatus);
+                            
 							break;
 
 						// Consider other potential final states or relevant intermediate states
@@ -132,7 +119,7 @@
 					}
 				} catch (trackError) {
 					console.error(
-						`[${new Date().toISOString()}] Error fetching status for ${tx.id}:`,
+						`[${new Date().toISOString()}] Error fetching status for ${tx.operationId}:`,
 						trackError,
 					);
 					// Optionally set status to failed or keep pending and retry?
@@ -152,24 +139,25 @@
 				(localTx.status === "pending" || localTx.status === "processing")
 			) {
 				console.log(
-					`Max attempts reached for ${tx.id}, operation status uncertain.`,
+					`Max attempts reached for ${tx.operationId}, operation status uncertain.`,
 				);
 				// Optionally update status to 'unknown' or 'timeout'
 				localTx.status = "unknown";
-				saveLocalTransaction(address, localTx);
-				transactions = [...transactions];
+
+				transactions=await getLatestTransactions(address)
 			}
+			updatedTransactions=await getLatestTransactions(address)
 		} catch (error) {
 			console.error(
-				`[${new Date().toISOString()}] General Tracking Error for ${tx.id}:`,
+				`[${new Date().toISOString()}] General Tracking Error for ${tx.operationId}:`,
 				error,
 			);
 			// Potentially update the specific transaction's status to 'failed' in the UI
-			let localTx = transactions.find((t) => t.id === tx.id);
+			let localTx = transactions.find((t) => t.id === tx.operationId);
 			if (localTx) {
 				localTx.status = "failed";
 				localTx.errorMsg = `Tracking Error: ${error.message || error}`;
-				saveLocalTransaction(address, localTx);
+
 				transactions = [...transactions]; // Trigger reactivity
 			}
 		}
@@ -199,7 +187,8 @@
 			if (fetchedTransactions.length > 0) {
 				transactions = fetchedTransactions.map((tx) => ({
 					...tx,
-					id: tx.id || tx.operationId || `fallback-${Math.random()}`, // Ensure an ID exists
+					operationId:
+						tx.operationId || tx.operationId || `fallback-${Math.random()}`, // Ensure an ID exists
 					status: tx.status || "pending", // Default to 'pending' if status is missing
 					// Add other default fields from typedef if necessary
 					type: tx.type || "Unknown",
@@ -213,7 +202,7 @@
 
 			// --- Start tracking for pending transactions ---
 			const pendingTransactions = transactions.filter(
-				(tx) => tx.status === "pending" && tx.id,
+				(tx) => tx.status === "pending" && tx.operationId,
 			);
 			console.log(
 				`Found ${pendingTransactions.length} pending transactions to track.`,
@@ -222,8 +211,8 @@
 			// Start tracking concurrently
 			pendingTransactions.forEach((tx) => {
 				// Don't await here; let them run in the background
-				console.log("Starting tracking for tx: ", tx.id);
-				trackTransaction(tx); // Pass the full transaction object
+				console.log("Starting tracking for tx: ", tx.operationId);
+			 trackTransaction(tx); // Pass the full transaction object
 			});
 		} catch (err) {
 			console.error("Failed to fetch or process initial transactions:", err);
@@ -273,9 +262,11 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each transactions as tx (tx.id)}
+							{#each updatedTransactions as tx (tx.operationId)}
 								<tr>
-									<td data-label="Op ID" class="op-id">{formatOpId(tx.id)}</td>
+									<td data-label="Op ID" class="op-id"
+										>{formatOpId(tx.operationId)}</td
+									>
 									<td data-label="Type" class="tx-type">{tx.type}</td>
 									<td data-label="Amount" class="tx-amount"
 										>{tx.amount} {tx.currency}</td
