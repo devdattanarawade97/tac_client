@@ -345,7 +345,7 @@
 
     :global(body) {
         margin: 0;
-        padding: 8px; /* Consistent padding */
+        padding: 8px; /* Default padding */
         background-color: var(--app-secondary-bg-color);
         color: var(--app-text-color);
         min-height: 100vh;
@@ -354,6 +354,8 @@
         font-size: 15px;
         box-sizing: border-box;
         -webkit-overflow-scrolling: touch;
+        /* Ensure body itself doesn't cause horizontal scroll */
+        overflow-x: hidden;
     }
 
     * {
@@ -366,13 +368,18 @@
         display: flex;
         justify-content: center;
         align-items: flex-start;
-        min-height: calc(100vh - 16px);
-        padding-top: 8px;
+        min-height: calc(100vh - 16px); /* Adjust based on body padding */
+        padding-top: 8px; /* Consistent with body padding */
+        width: 100%; /* Ensure main takes full width */
     }
 
+    /* Wallet container - Default Max Width */
     .wallet-container {
-      
-        max-width: 490px;
+        width: 100%;
+        /* Default max-width for wider screens if desired, TMA usually handles this */
+        /* max-width: 600px; <-- Can be adjusted or removed depending on desired large screen behavior */
+        /* For TMA, often relying on 100% width is fine */
+        padding: 0; /* Remove padding here if body has it */
     }
 
     h1 {
@@ -384,12 +391,13 @@
     }
 
     .card {
-        width: 100%;
+        width: 100%; /* Card takes full width of its container */
         background: var(--app-bg-color);
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(var(--tg-theme-hint-color, #000000), 0.08);
-        padding: 12px;
+        padding: 12px; /* Default card padding */
         border: 1px solid var(--app-border-color);
+        margin-bottom: 10px; /* Add space below card if needed */
     }
     /* --- End Base Styles --- */
 
@@ -429,20 +437,19 @@
     /* --- Table Styles (Non-Responsive/Scrolling) --- */
     .table-wrapper {
         overflow-x: auto; /* CRUCIAL: Enables horizontal scrolling */
-        width: 100%;      /* Ensure wrapper takes full width */
+        width: 100%;      /* Ensure wrapper takes full width OF THE CARD */
         margin-top: 16px;
         -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
     table {
-        width: 100%;              /* Allow table to grow */
+        width: 100%;              /* Table takes full width OF THE WRAPPER */
         border-collapse: collapse;
         min-width: 450px;         /* Minimum width before scrollbar appears - ADJUST AS NEEDED */
-                                  /* Increase this if columns look too squished */
         font-size: 0.85rem;
     }
     th,
     td {
-        padding: 9px 8px;          /* Adjusted padding slightly */
+        padding: 9px 8px;
         text-align: left;
         border-bottom: 1px solid var(--app-border-color);
         vertical-align: middle;
@@ -455,123 +462,73 @@
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        position: sticky;          /* Keep header visible during vertical scroll */
+        position: sticky;
         top: 0;
         z-index: 1;
     }
-    /* Remove bottom border from last row only */
     tbody tr:last-child td {
          border-bottom: none;
     }
 
     /* --- Column Content Styles --- */
-    .op-id {
-        font-family: "Courier New", Courier, monospace;
-        font-size: 0.8em;
-        color: var(--app-hint-color);
-         /* Can add min-width here if needed, e.g., min-width: 80px; */
-    }
-    .tx-type {
-        font-weight: 500;
-        color: var(--app-text-color);
-         /* Can add min-width here if needed, e.g., min-width: 70px; */
-    }
-    .tx-amount {
-        text-align: right;
-        font-weight: 500;
-         /* Can add min-width here if needed, e.g., min-width: 80px; */
-    }
-    th:nth-child(3) { /* Amount Header */
-        text-align: right;
-    }
-    .tx-status {
-        text-align: center;
-         /* Can add min-width here if needed, e.g., min-width: 100px; */
-    }
-    th:nth-child(4) { /* Status Header */
-        text-align: center;
-    }
+    .op-id { font-family: "Courier New", Courier, monospace; font-size: 0.8em; color: var(--app-hint-color); }
+    .tx-type { font-weight: 500; color: var(--app-text-color); }
+    .tx-amount { text-align: right; font-weight: 500; }
+    th:nth-child(3) { text-align: right; } /* Amount Header */
+    .tx-status { text-align: center; }
+    th:nth-child(4) { text-align: center; } /* Status Header */
     /* --- End Column Styles --- */
 
     /* --- Status Badge & Spinner --- */
-    .status-badge {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 0.9em;
-        font-weight: 600;
-        line-height: 1.2;
-        text-transform: capitalize;
-        margin-right: 4px;
-        vertical-align: middle;
-        white-space: nowrap; /* Keep badge text on one line */
-    }
-    .status-spinner {
-        display: inline-block;
-        vertical-align: middle;
-        width: 0.9em;
-        height: 0.9em;
-        border: 2px solid currentColor;
-        border-top-color: transparent;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        opacity: 0.7;
-    }
-
+    .status-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.9em; font-weight: 600; line-height: 1.2; text-transform: capitalize; margin-right: 4px; vertical-align: middle; white-space: nowrap; }
+    .status-spinner { display: inline-block; vertical-align: middle; width: 0.9em; height: 0.9em; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; opacity: 0.7; }
     /* Color coding the badges */
     .status-completed .status-badge { background-color: var(--status-success-color); color: var(--status-success-text); }
     .status-pending .status-badge { background-color: var(--status-pending-color); color: var(--status-pending-text); }
     .status-processing .status-badge { background-color: var(--status-processing-color); color: var(--status-processing-text); }
     .status-failed .status-badge { background-color: var(--status-danger-color); color: var(--status-danger-text); }
     .status-unknown .status-badge { background-color: var(--status-unknown-color); color: var(--status-unknown-text); }
-
-    .error-details {
-        font-size: 0.8em;
-        color: var(--status-danger-color);
-        display: block; /* Still block to appear below badge if status cell wraps (though we set nowrap now) */
-        margin-top: 4px;
-        text-align: center;
-        white-space: normal; /* Allow error message itself to wrap */
-        word-wrap: break-word;
-        line-height: 1.3;
-        /* If td has nowrap, this might still be constrained. Tooltip might be better. */
-    }
+    .error-details { font-size: 0.8em; color: var(--status-danger-color); display: block; margin-top: 4px; text-align: center; white-space: normal; word-wrap: break-word; line-height: 1.3; }
+    /* --- End Status --- */
 
     /* --- Nav Section --- */
-    .nav-section {
-        text-align: center;
-        margin-top: 20px;
-        padding-top: 16px;
-        border-top: 1px solid var(--app-border-color);
-    }
-    .nav-link {
-        color: var(--app-link-color);
-        font-size: 0.9rem;
-        font-weight: 500;
-        text-decoration: none;
-        transition: opacity 0.2s ease;
-        padding: 8px 12px;
-        border-radius: 6px;
-        display: inline-block;
-    }
-    .nav-link:hover, .nav-link:active {
-        opacity: 0.7;
-        text-decoration: none;
-    }
+    .nav-section { text-align: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--app-border-color); }
+    .nav-link { color: var(--app-link-color); font-size: 0.9rem; font-weight: 500; text-decoration: none; transition: opacity 0.2s ease; padding: 8px 12px; border-radius: 6px; display: inline-block; }
+    .nav-link:hover, .nav-link:active { opacity: 0.7; text-decoration: none; }
+    /* --- End Nav --- */
 
     /* --- Keyframes --- */
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /*
-     * --- Responsive Stacking Block Removed ---
-     * The @media (max-width: 550px) block that previously
-     * converted the table to stacked cards has been removed
-     * to ensure the table layout persists on all screen sizes,
-     * relying on horizontal scrolling via .table-wrapper.
-     */
+    /* --- Responsive Adjustments for Mini App Width --- */
+    /* Apply adjustments below a certain width, e.g., 480px */
+    /* This mirrors the logic from Style B for container width */
+    @media (max-width: 480px) {
+         :global(body) {
+             padding: 6px; /* Optional: Slightly reduce body padding */
+         }
+
+        .wallet-container {
+            /* CRITICAL FIX: Allow the main container to shrink below its default max-width */
+            /* No max-width here, let it be 100% of the viewport */
+            max-width: 100%;
+        }
+
+        .card {
+            padding: 10px; /* Optional: Slightly reduce card padding */
+            border-radius: 10px; /* Optional: Adjust radius */
+        }
+
+        h1 {
+            font-size: 1.4rem; /* Optional: Slightly smaller heading */
+        }
+
+        /* Optional: Adjust table text size slightly if needed for density */
+        /* table { font-size: 0.8rem; } */
+        /* th, td { padding: 8px 6px; } */
+
+        /* Keep the table scrolling via .table-wrapper */
+        /* No changes needed for table, th, td display properties */
+    }
 
 </style>
