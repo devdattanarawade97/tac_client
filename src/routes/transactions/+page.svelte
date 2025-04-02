@@ -371,7 +371,7 @@
     /* --- Loading/Error/Empty States --- */
     .loading-indicator, .error-message, .no-transactions, .overall-loading { text-align: center; padding: 30px 15px; font-size: 0.95rem; color: var(--app-hint-color); }
     .error-message { color: var(--status-danger-color); font-weight: 500; }
-    .loading-indicator .spinner, .overall-loading .spinner { display: inline-block; vertical-align: middle; margin-left: 8px; width: 1.2em; height: 1.2em; border: 2px solid currentColor; border-top-color: var(--app-link-color); border-radius: 50%; animation: spin 1s linear infinite; }
+    .loading-indicator .spinner, .overall-loading .spinner { display: inline-block; vertical-align: middle; margin-left: 4px; width: 1.2em; height: 1.2em; border: 2px solid currentColor; border-top-color: var(--app-link-color); border-radius: 50%; animation: spin 1s linear infinite; }
     .overall-loading { margin-top: 16px; border-top: 1px solid var(--app-border-color); padding-top: 16px; font-size: 0.9rem; }
 
     /* --- ##### TABLE STYLES - FORCED FIT, NO SCROLL ##### --- */
@@ -398,7 +398,7 @@
     /* 3. Cells and Headers: Allow wrapping, break words, align top */
     th,
     td {
-        padding: 8px 8px; /* Adjusted */
+        padding: 3px 3px; /* Adjusted */
         text-align: left;
         border-bottom: 1px solid var(--app-border-color);
         vertical-align: top;   /* CHANGED: Align top */
