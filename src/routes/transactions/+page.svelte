@@ -244,8 +244,10 @@
 
 <main>
 	<div class="wallet-container">
+	
 		<div class="card transactions-card">
-			<h1>Transaction History</h1>
+		
+			<h4>Transaction History</h4>
 
 			{#if isLoading}
 				<div class="loading-indicator">

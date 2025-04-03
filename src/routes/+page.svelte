@@ -571,33 +571,17 @@
 		}
 	}
 
-	// const handleMetaMaskConnect = async () => {
-	// 	if (!metaMaskWallet) return;
 
-	// 	try {
-	// 		const accounts = await metaMaskWallet.request({
-	// 			method: "eth_requestAccounts",
-	// 		});
-	// 		isMetaMaskConnected = true;
-	// 		metaMaskAccount = accounts[0];
-	// 		console.log("MetaMask account:", metaMaskAccount);
-
-	// 		// Get the current network
-	// 		const networkId = await metaMaskWallet.request({ method: "eth_chainId" });
-	// 		//log network id
-	// 		console.log("networkId :", networkId);
-	// 	} catch (error) {
-	// 		console.error("Error connecting to MetaMask:", error);
-	// 	}
-	// };
 </script>
 
 <main>
 	<div class="wallet-container">
 		<div class="card">
-			<h1>BIMA Wallet</h1>
+			
 			<div class="wallet-section">
+				<h1>BIMA</h1>
 				<div class="wallet-grid">
+					
 					<div class="wallet-item">
 						<div class="ton-connect-container" id="ton-connect"></div>
 					</div>
@@ -848,12 +832,17 @@
 	
 		margin-bottom: 24px;
 		display: flex;
+
+		align-content: center;
+ 
+		
 	}
 
 	.wallet-grid {
 		display: flex; /* Keep this to arrange items INSIDE the grid */
-        align-items: center;
 
+	   justify-content: center;
+		align-items: center;
 		/* FIXED: Use margin-left: auto to push the grid itself to the right */
 		margin-left: auto;
 		margin-right: 0; /* Optional: ensure no unintended right margin */
