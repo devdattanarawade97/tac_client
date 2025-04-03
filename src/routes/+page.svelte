@@ -39,7 +39,7 @@
 	// store.js
 
 	let tonBalance = 0;
-	let showStatus=false;
+
 	$:updatedTonBalance=tonBalance
 	/**
 	 * @type {string | undefined}
@@ -155,8 +155,7 @@
 
 		//@ts-ignore
 		tonConnect.onStatusChange(async (wallet) => {
-			showStatus=true;
-			status="fetching balance"
+		
 			isConnected = !!wallet;
 			console.log("Wallet connection status:", isConnected);
 			userTonWalletAddress = wallet?.account.address;
@@ -224,7 +223,7 @@
 		// } else {
 		// 	console.log("MetaMask not installed");
 		// }
-		showStatus=false;
+		
 	});
 
 	//mint tokens
@@ -668,20 +667,21 @@
 								{/if}
 							</div>
 
-							{#if loadingEquivalent}
+							<!-- {#if loadingEquivalent}
 								<button disabled class="action-button mint loading-button">
 									<span class="spinner"></span>
 									<span class="loading-text">Processing...</span>
 								</button>
 							{:else}
-								<button
+								
+							{/if} -->
+							<button
 									on:click={MintTokens}
 									class="action-button mint"
 									disabled={!jettonInputAmount || jettonInputAmount <= 0}
 								>
 									Mint BMBTC
 								</button>
-							{/if}
 						{:else}
 							<div class="input-group">
 								<label for="bmbtcAmountBurn">Amount to burn:</label>
@@ -725,20 +725,21 @@
 								{/if}
 							</div>
 
-							{#if loadingEquivalent}
+							<!-- {#if loadingEquivalent}
 								<button disabled class="action-button burn loading-button">
 									<span class="spinner"></span>
 									<span class="loading-text">Processing...</span>
 								</button>
 							{:else}
-								<button
-									on:click={BurnTokens}
-									class="action-button burn"
-									disabled={!bmBTCInputAmount || bmBTCInputAmount <= 0}
-								>
-									Burn BMBTC
-								</button>
-							{/if}
+							
+							{/if} -->
+							<button
+							on:click={BurnTokens}
+							class="action-button burn"
+							disabled={!bmBTCInputAmount || bmBTCInputAmount <= 0}
+						>
+							Burn BMBTC
+						</button>
 						{/if}
 
 						{#if progressPercentage != null && loadingEquivalent}

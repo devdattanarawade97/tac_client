@@ -463,7 +463,7 @@
             max-width: 100%; /* Use full width */
         }
         /* Optional: Other mobile adjustments */
-         :global(body) { padding: 12px; }
+
          h1 { font-size: 1.4rem; }
          .card { padding: 12px; }
          table { font-size: 0.8rem; }
