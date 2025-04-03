@@ -39,6 +39,7 @@
 	// store.js
 
 	let tonBalance = 0;
+	$:updatedTonBalance=tonBalance
 	/**
 	 * @type {string | undefined}
 	 */
@@ -64,21 +65,7 @@
 	 */
 	let userJettonBalance;
 
-	let isMetaMaskConnected = false;
-	/**
-	 * @type {{ request: (arg0: { method: string; params?: never[]; }) => any; } | null}
-	 */
-	let metaMaskWallet = null;
-	/**
-	 * @type {null}
-	 */
-	let metaMaskAccount = null;
-
-	/**
-	 * @type {string | null}
-	 */
-	// @ts-ignore
-	let metaMaskNetwork = null;
+	
 	let isConnected = false;
 	/**
 	 * @type {TonConnectUI | null}
@@ -223,6 +210,7 @@
 					userTonWalletAddress,
 					tvmTokenAddress,
 				)) ?? 0;
+				console.log('user bmbtc balance fetched : ', userBmbtcBalance)
 		});
 		// @ts-ignore
 
@@ -613,7 +601,7 @@
 				</div>
 			</div>
 
-			{#if isConnected || isMetaMaskConnected}
+			{#if isConnected }
 				<div class="operations-section">
 					<div class="tab-bar">
 						<button
@@ -648,7 +636,7 @@
 									/>
 									<span class="token">TON</span>
 								</div>
-								{#if tonBalance != null}
+								{#if updatedTonBalance != null}
 									<div class="balance">
 										<span>Balance: {Number(tonBalance).toFixed(4)} TON</span>
 									</div>
@@ -726,7 +714,7 @@
 									/>
 									<span class="token">TON</span>
 								</div>
-								{#if tonBalance != null}
+								{#if updatedTonBalance != null}
 									<div class="balance">
 										<span>Balance: {Number(tonBalance).toFixed(4)} TON</span>
 									</div>
@@ -1171,3 +1159,5 @@
 		}
 	}
 </style>
+
+
