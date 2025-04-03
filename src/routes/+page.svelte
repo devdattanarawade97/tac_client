@@ -20,7 +20,6 @@
 		SimplifiedStatuses,
 	} from "tac-sdk";
 
-
 	import {
 		PUBLIC_JETTON_TOKEN_ADDRESS,
 		PUBLIC_WTON_TOKEN_ADDRESS,
@@ -40,7 +39,7 @@
 
 	let tonBalance = 0;
 
-	$:updatedTonBalance=tonBalance
+
 	/**
 	 * @type {string | undefined}
 	 */
@@ -66,7 +65,6 @@
 	 */
 	let userJettonBalance;
 
-	
 	let isConnected = false;
 	/**
 	 * @type {TonConnectUI | null}
@@ -155,7 +153,6 @@
 
 		//@ts-ignore
 		tonConnect.onStatusChange(async (wallet) => {
-		
 			isConnected = !!wallet;
 			console.log("Wallet connection status:", isConnected);
 			userTonWalletAddress = wallet?.account.address;
@@ -212,7 +209,7 @@
 					userTonWalletAddress,
 					tvmTokenAddress,
 				)) ?? 0;
-				console.log('user bmbtc balance fetched : ', userBmbtcBalance)
+			console.log("user bmbtc balance fetched : ", userBmbtcBalance);
 		});
 		// @ts-ignore
 
@@ -223,7 +220,6 @@
 		// } else {
 		// 	console.log("MetaMask not installed");
 		// }
-		
 	});
 
 	//mint tokens
@@ -235,7 +231,6 @@
 
 		try {
 			status = "Sending transaction...";
-
 
 			// Encoding with single parameter
 			const to = PUBLIC_TREASURE_SWAP_PROXY;
@@ -429,9 +424,14 @@
 						amount: activeTab == "mint" ? equivalentBmbtc : equivalentWton,
 						currency: activeTab == "mint" ? "BMBTC" : "TON",
 					};
-				//	@ts-ignore
-					const storeResponse=await postTransaction(userTonWalletAddress,operationDetails);
-					console.log('store response : ', storeResponse)
+
+					//@ts-ignore
+					const storeResponse = await postTransaction(
+						// @ts-ignore
+						userTonWalletAddress,
+						operationDetails,
+					);
+					console.log("store response : ", storeResponse);
 					break; // Exit loop if operationId is retrieved
 				} else {
 					console.log(
@@ -570,25 +570,21 @@
 			status = `Tracking Error: : ${error}`;
 		}
 	}
-
-
 </script>
 
 <main>
 	<div class="wallet-container">
 		<div class="card">
-			
 			<div class="wallet-section">
 				<h1>BIMA</h1>
 				<div class="wallet-grid">
-					
 					<div class="wallet-item">
 						<div class="ton-connect-container" id="ton-connect"></div>
 					</div>
 				</div>
 			</div>
 
-			{#if isConnected }
+			{#if isConnected}
 				<div class="operations-section">
 					<div class="tab-bar">
 						<button
@@ -623,7 +619,7 @@
 									/>
 									<span class="token">TON</span>
 								</div>
-								{#if updatedTonBalance != null}
+								{#if tonBalance != null}
 									<div class="balance">
 										<span>Balance: {Number(tonBalance).toFixed(4)} TON</span>
 									</div>
@@ -660,12 +656,12 @@
 								
 							{/if} -->
 							<button
-									on:click={MintTokens}
-									class="action-button mint"
-									disabled={!jettonInputAmount || jettonInputAmount <= 0}
-								>
-									Mint BMBTC
-								</button>
+								on:click={MintTokens}
+								class="action-button mint"
+								disabled={!jettonInputAmount || jettonInputAmount <= 0}
+							>
+								Mint BMBTC
+							</button>
 						{:else}
 							<div class="input-group">
 								<label for="bmbtcAmountBurn">Amount to burn:</label>
@@ -702,7 +698,7 @@
 									/>
 									<span class="token">TON</span>
 								</div>
-								{#if updatedTonBalance != null}
+								{#if tonBalance != null}
 									<div class="balance">
 										<span>Balance: {Number(tonBalance).toFixed(4)} TON</span>
 									</div>
@@ -718,12 +714,12 @@
 							
 							{/if} -->
 							<button
-							on:click={BurnTokens}
-							class="action-button burn"
-							disabled={!bmBTCInputAmount || bmBTCInputAmount <= 0}
-						>
-							Burn BMBTC
-						</button>
+								on:click={BurnTokens}
+								class="action-button burn"
+								disabled={!bmBTCInputAmount || bmBTCInputAmount <= 0}
+							>
+								Burn BMBTC
+							</button>
 						{/if}
 
 						{#if progressPercentage != null && loadingEquivalent}
@@ -743,13 +739,11 @@
 					</div>
 				</div>
 			{/if}
-		{#if isConnected}
-		
-		<div class="nav-section">
-			<a href="/transactions" class="nav-link">View Transaction History</a>
-		</div>
-	
-		{/if}
+			{#if isConnected}
+				<div class="nav-section">
+					<a href="/transactions" class="nav-link">View Transaction History</a>
+				</div>
+			{/if}
 		</div>
 	</div>
 </main>
@@ -757,7 +751,6 @@
 <style>
 	/* --- Color Palette --- */
 	:root {
-
 		--primary-color: #4a90e2; /* Vibrant Blue */
 		--primary-darker: #357abd; /* Darker Blue for hover */
 		--secondary-color: #50e3c2; /* Turquoise/Mint - Accent */
@@ -797,7 +790,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: flex-start; /* Align card to top */
-        
+
 		/* min-height removed, handled by body min-height and padding */
 		/* padding-top removed, handled by body padding */
 	}
@@ -829,19 +822,16 @@
 
 	/* Wallet Section */
 	.wallet-section {
-	
 		margin-bottom: 24px;
 		display: flex;
 
 		align-content: center;
- 
-		
 	}
 
 	.wallet-grid {
 		display: flex; /* Keep this to arrange items INSIDE the grid */
 
-	   justify-content: center;
+		justify-content: center;
 		align-items: center;
 		/* FIXED: Use margin-left: auto to push the grid itself to the right */
 		margin-left: auto;
@@ -1154,7 +1144,4 @@
 			font-size: 0.8rem;
 		}
 	}
-
 </style>
-
-
