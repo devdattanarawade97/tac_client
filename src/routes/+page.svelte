@@ -39,6 +39,7 @@
 	// store.js
 
 	let tonBalance = 0;
+	let showStatus=false;
 	$:updatedTonBalance=tonBalance
 	/**
 	 * @type {string | undefined}
@@ -154,6 +155,8 @@
 
 		//@ts-ignore
 		tonConnect.onStatusChange(async (wallet) => {
+			showStatus=true;
+			status="fetching balance"
 			isConnected = !!wallet;
 			console.log("Wallet connection status:", isConnected);
 			userTonWalletAddress = wallet?.account.address;
@@ -221,6 +224,7 @@
 		// } else {
 		// 	console.log("MetaMask not installed");
 		// }
+		showStatus=false;
 	});
 
 	//mint tokens
@@ -755,9 +759,11 @@
 				</div>
 			{/if}
 		{#if isConnected}
+		
 		<div class="nav-section">
 			<a href="/transactions" class="nav-link">View Transaction History</a>
 		</div>
+	
 		{/if}
 		</div>
 	</div>
@@ -1158,6 +1164,7 @@
 			font-size: 0.8rem;
 		}
 	}
+
 </style>
 
 

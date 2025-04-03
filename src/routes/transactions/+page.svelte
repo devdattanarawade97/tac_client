@@ -322,7 +322,7 @@
     :root {
         /* Using Telegram theme variables with fallbacks */
 
-        --app-bg-color: var(--tg-theme-bg-color, #ffffff); */
+        --app-bg-color: var(--tg-theme-bg-color, #ffffff); 
         --app-secondary-bg-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
         --app-text-color: var(--tg-theme-text-color, #000000);
         --app-hint-color: var(--tg-theme-hint-color, #6b7280);
