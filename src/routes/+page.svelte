@@ -778,6 +778,7 @@
 <style>
 	/* --- Color Palette --- */
 	:root {
+
 		--primary-color: #4a90e2; /* Vibrant Blue */
 		--primary-darker: #357abd; /* Darker Blue for hover */
 		--secondary-color: #50e3c2; /* Turquoise/Mint - Accent */
@@ -817,6 +818,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: flex-start; /* Align card to top */
+        
 		/* min-height removed, handled by body min-height and padding */
 		/* padding-top removed, handled by body padding */
 	}

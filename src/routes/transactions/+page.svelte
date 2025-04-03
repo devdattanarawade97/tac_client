@@ -321,7 +321,8 @@
     /* --- TMA Compatibility Base Styles --- */
     :root {
         /* Using Telegram theme variables with fallbacks */
-        --app-bg-color: var(--tg-theme-bg-color, #ffffff);
+
+        /* --app-bg-color: var(--tg-theme-bg-color, #ffffff); */
         --app-secondary-bg-color: var(--tg-theme-secondary-bg-color, #f3f4f6);
         --app-text-color: var(--tg-theme-text-color, #000000);
         --app-hint-color: var(--tg-theme-hint-color, #6b7280);
@@ -363,6 +364,8 @@
 	.wallet-container {
 		width: 100%;
 		max-width: 480px; /* Slightly narrower for better mobile feel */
+		
+
 	}
   
     h1 { font-size: 1.6rem; /* Adjusted */ font-weight: 600; color: var(--app-text-color); text-align: center; margin-bottom: 20px; /* Adjusted */ }
@@ -398,10 +401,10 @@
     /* 3. Cells and Headers: Allow wrapping, break words, align top */
     th,
     td {
-        padding: 3px 3px; /* Adjusted */
-        text-align: left;
+        padding: 8px 16px; /* Adjusted */
+        text-align: center;
         border-bottom: 1px solid var(--app-border-color);
-        vertical-align: top;   /* CHANGED: Align top */
+        vertical-align: center;   /* CHANGED: Align top */
         white-space: normal; /* CHANGED: Allow wrapping */
         overflow-wrap: break-word; /* ADDED: Break long words */
         color: var(--app-text-color);
