@@ -1,0 +1,47 @@
+PS E:\Digichain\Bima\my repos\TAC_V2\tac_faucet_contracts\dapps> npx hardhat run scripts/treasurySwap/deploy.ts --network tac_testnet
+Start deployment for token:  Hello BTC
+[TestnetERC20 : TestnetERC20] Deployment successfull: 0xfa04bFf86bdE5462a8c5cf79aCc1BB21A3c742b0
+Starting verification...
+Successfully submitted source code for contract
+contracts/faucet/TestnetERC20.sol:TestnetERC20 at 0xfa04bFf86bdE5462a8c5cf79aCc1BB21A3c742b0
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract TestnetERC20 on the block explorer.
+https://turin.explorer.tac.build/address/0xfa04bFf86bdE5462a8c5cf79aCc1BB21A3c742b0#code
+
+Verification done.
+Deploying TreasurySwap contract
+wTON address:  0xc40A96e983f9Cef1890c2af343Dee064875D3490
+Token address:  0xfa04bFf86bdE5462a8c5cf79aCc1BB21A3c742b0
+Token value:  94000n
+Decimals:  6n
+Upper bound:  1000000000n
+Lower bound:  50n
+Starting verification...
+Successfully submitted source code for contract
+contracts/faucet/TreasurySwap.sol:TreasurySwap at 0x45437b83f4cb532A8ad247eDd402ca53220b117d
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract TreasurySwap on the block explorer.
+https://turin.explorer.tac.build/address/0x45437b83f4cb532A8ad247eDd402ca53220b117d#code
+
+Verification done.
+[TreasurySwapProxy : TreasurySwapProxy] Deployment upgradable successfull: 0x07C2025Dc948a7f444151fE3ce77bE590Dc61Bea
+Starting verification...
+Verifying implementation: 0xEbc8e8AEd71439199efC09f93DeA1A83e6d2Aca1
+Successfully submitted source code for contract
+contracts/faucet/proxy/TreasurySwapProxy.sol:TreasurySwapProxy at 0xEbc8e8AEd71439199efC09f93DeA1A83e6d2Aca1
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract TreasurySwapProxy on the block explorer.
+https://turin.explorer.tac.build/address/0xEbc8e8AEd71439199efC09f93DeA1A83e6d2Aca1#code
+
+Verifying proxy: 0x07C2025Dc948a7f444151fE3ce77bE590Dc61Bea
+Successfully verified contract ERC1967Proxy at 0x07C2025Dc948a7f444151fE3ce77bE590Dc61Bea.
+Linking proxy 0x07C2025Dc948a7f444151fE3ce77bE590Dc61Bea with implementation
+Successfully linked proxy to implementation.
+
+Proxy fully verified.
+Verification done.
+Done with  Hello BTC
+PS E:\Digichain\Bima\my repos\TAC_V2\tac_faucet_contracts\dapps>

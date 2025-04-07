@@ -4,15 +4,8 @@
 	import { tonwalletaddressStore } from "../../store/walletStore"; // Adjust path if needed
 	import { getLatestTransactions } from "../../hooks/retrievTransactions"; // Adjust path if needed
 	import { goto } from "$app/navigation"; // <--- IMPORT GOTO
-	import {
-		TacSdk,
-		Network,
-		SenderFactory,
-		startTracking,
-		OperationTracker,
-		// @ts-ignore
-		SimplifiedStatuses,
-	} from "tac-sdk";
+	import { TacSdk , OperationTracker , StageName} from '@tonappchain/sdk';
+	import { Network } from '@tonappchain/sdk';
 
 	// Assuming OperationTracker and Network are available globally or imported
 	// Ensure these are correctly referenced or imported based on your project setup
@@ -49,7 +42,7 @@
 
 	async function trackTransaction(tx) {
 		// Use Testnet or Mainnet based on your environment
-		const tracker = new OperationTracker(Network.Testnet); // Or Network.Mainnet
+		const tracker = new OperationTracker(Network.TESTNET); // Or Network.Mainnet
 
 		try {
 			console.log(`Tracking Operation ID: ${tx.operationId}`); // Use tx.operationId as defined in typedef
@@ -79,8 +72,8 @@
 					let newStatus = localTx.status; // Default to current status
 
 					// Map SDK statuses to your application statuses
-					switch (opStatus.status) {
-						case "TVMMerkleMessageExecuted":
+					switch (opStatus.stage) {
+						case StageName.EXECUTED_IN_TON:
 							newStatus = "completed";
 							loadingEquivalent = false; // Assuming this global flag indicates overall loading
 							localTx.status = newStatus;
@@ -93,11 +86,11 @@
 							break;
 
 						// Consider other potential final states or relevant intermediate states
-						case "EVMMerkleMessageCollected":
-						case "EVMMerkleRootSet":
-						case "EVMMerkleMessageExecuted":
-						case "TVMMerkleMessageCollected":
-						case "TVMMerkleRootSet":
+						case StageName.COLLECTED_IN_TAC:
+						case StageName.COLLECTED_IN_TON:
+						case StageName.EXECUTED_IN_TAC:
+						case StageName.INCLUDED_IN_TAC_CONSENSUS:
+						case StageName.INCLUDED_IN_TON_CONSENSUS:
 							// Keep as pending or map to a specific "processing" state if desired
 							newStatus = "pending"; // Or 'processing'
 							break;

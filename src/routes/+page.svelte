@@ -10,15 +10,8 @@
 	import tokensJson from "../tokens/tokens.json";
 	import { fetchJettonBalance } from "../helper/getJettonBalance";
 	import { postTransaction } from "../hooks/saveTransaction";
-	import {
-		TacSdk,
-		Network,
-		SenderFactory,
-		startTracking,
-		OperationTracker,
-		// @ts-ignore
-		SimplifiedStatuses,
-	} from "tac-sdk";
+	import { TacSdk , OperationTracker , StageName , SenderFactory} from '@tonappchain/sdk';
+	import { Network } from '@tonappchain/sdk';
 
 	import {
 		PUBLIC_JETTON_TOKEN_ADDRESS,
@@ -54,8 +47,9 @@
 	 */
 
 	let tac_sdk;
+
 	/**
-	 * @type {import("tac-sdk").SenderAbstraction}
+	 * @type {import("@tonappchain/sdk").SenderAbstraction}
 	 */
 	let sender;
 
@@ -167,7 +161,7 @@
 
 			// Initialize TacSdk
 			tac_sdk = await TacSdk.create({
-				network: Network.Testnet,
+				network: Network.TESTNET,
 				TONParams: {
 					contractOpener: new TonClient({
 						endpoint: "https://testnet.toncenter.com/api/v2/jsonRPC",
@@ -279,8 +273,8 @@
 			loadingEquivalent = true;
 			// const tracker1 = await startTracking(transactionLinker, Network.Testnet);
 			// console.log("tracker 1 log : ", tracker1);
-			const network = Network.Testnet;
-			const tracker = new OperationTracker(Network.Testnet);
+			const network = Network.TESTNET;
+			const tracker = new OperationTracker(Network.TESTNET);
 
 			// const operationId = await tracker.getOperationId(transactionLinker);
 			// console.log('Operation ID:', operationId);
@@ -319,10 +313,10 @@
 
 			const bmbtcInfo = {
 				evmAdress: PUBLIC_BMBTC_TOKEN_ADDRESS,
-				name: "BIMA BTC",
-				symbol: "BMBTC",
+				name: "Hello BTC",
+				symbol: "HBTC",
 				decimals: tokensJson[0].decimals,
-				description: "bmbtc description",
+				description: "HBTC description",
 				image: "abc",
 			};
 
@@ -400,7 +394,7 @@
 	// @ts-ignore
 	async function getOperationId(transactionLinker) {
 		status = "Updating Transaction Status";
-		const tracker = new OperationTracker(Network.Testnet);
+		const tracker = new OperationTracker(Network.TESTNET);
 		let operationId = null;
 		const maxAttempts = 120; // Maximum retry attempts
 		const retryDelay = 3000; // Delay between retries in milliseconds (3 seconds)
@@ -422,7 +416,7 @@
 						status: "pending",
 						type: activeTab,
 						amount: activeTab == "mint" ? equivalentBmbtc : equivalentWton,
-						currency: activeTab == "mint" ? "BMBTC" : "TON",
+						currency: activeTab == "mint" ? "HBTC" : "TON",
 					};
 
 					//@ts-ignore
@@ -508,7 +502,7 @@
 	 */
 	// @ts-ignore
 	async function trackTransaction(operationId) {
-		const tracker = new OperationTracker(Network.Testnet);
+		const tracker = new OperationTracker(Network.TESTNET);
 
 		try {
 			console.log(`Tracking Operation ID: ${operationId}`);
@@ -518,30 +512,30 @@
 
 			while (attempts < maxAttempts) {
 				const opStatus = await tracker.getOperationStatus(operationId);
-				console.log("Each Status:", opStatus.status);
+				console.log("Each Status:", opStatus.stage);
 
-				switch (opStatus.status) {
-					case "EVMMerkleMessageCollected":
+				switch (opStatus.stage) {
+					case StageName.COLLECTED_IN_TAC:
 						// status = "Transaction Status : EVMMerkleMessageCollected";
 						progressPercentage = 16.67; // ~1/6 of 100%
 						break;
-					case "EVMMerkleRootSet":
+					case StageName.INCLUDED_IN_TAC_CONSENSUS:
 						// status = "Transaction Status : EVMMerkleRootSet";
 						progressPercentage = 33.33; // ~2/6 of 100%
 						break;
-					case "EVMMerkleMessageExecuted":
+					case StageName.EXECUTED_IN_TAC:
 						// status = "Transaction Status : EVMMerkleMessageExecuted";
 						progressPercentage = 50.0; // ~3/6 of 100%
 						break;
-					case "TVMMerkleMessageCollected":
+					case StageName.COLLECTED_IN_TON:
 						// status = "Transaction Status : TVMMerkleMessageCollected";
 						progressPercentage = 66.67; // ~4/6 of 100
 						break;
-					case "TVMMerkleRootSet":
+					case StageName.INCLUDED_IN_TON_CONSENSUS:
 						// status = "Transaction Status : TVMMerkleRootSet";
 						progressPercentage = 83.33; // ~5/6 of 100%
 						break;
-					case "TVMMerkleMessageExecuted":
+					case StageName.EXECUTED_IN_TON:
 						// status = "Transaction Status : successful";
 						progressPercentage = 100.0; // 100% complete
 						break;
@@ -553,7 +547,7 @@
 				}
 
 				// Wait and retry if not in a final state
-				if (!["TVMMerkleMessageExecuted"].includes(opStatus.status)) {
+				if (![StageName.EXECUTED_IN_TON].includes(opStatus.stage)) {
 					await new Promise((resolve) => setTimeout(resolve, delayMs));
 					attempts++;
 				} else {
@@ -636,12 +630,12 @@
 										placeholder="0.0"
 										disabled
 									/>
-									<span class="token">BMBTC</span>
+									<span class="token">HBTC</span>
 								</div>
 								{#if userBmbtcBalance != null}
 									<div class="balance">
 										<span
-											>Balance: {Number(userBmbtcBalance).toFixed(8)} BMBTC</span
+											>Balance: {Number(userBmbtcBalance).toFixed(8)} HBTC</span
 										>
 									</div>
 								{/if}
@@ -660,7 +654,7 @@
 								class="action-button mint"
 								disabled={!jettonInputAmount || jettonInputAmount <= 0}
 							>
-								Mint BMBTC
+								Mint HBTC
 							</button>
 						{:else}
 							<div class="input-group">
@@ -675,12 +669,12 @@
 										placeholder="0.0"
 										on:input={handleBmbtcInputChange}
 									/>
-									<span class="token">BMBTC</span>
+									<span class="token">HBTC</span>
 								</div>
 								{#if userBmbtcBalance != null}
 									<div class="balance">
 										<span
-											>Balance: {Number(userBmbtcBalance).toFixed(8)} BMBTC</span
+											>Balance: {Number(userBmbtcBalance).toFixed(8)} HBTC</span
 										>
 									</div>
 								{/if}
@@ -718,7 +712,7 @@
 								class="action-button burn"
 								disabled={!bmBTCInputAmount || bmBTCInputAmount <= 0}
 							>
-								Burn BMBTC
+								Burn HBTC
 							</button>
 						{/if}
 
