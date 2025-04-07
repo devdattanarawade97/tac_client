@@ -10,8 +10,13 @@
 	import tokensJson from "../tokens/tokens.json";
 	import { fetchJettonBalance } from "../helper/getJettonBalance";
 	import { postTransaction } from "../hooks/saveTransaction";
-	import { TacSdk , OperationTracker , StageName , SenderFactory} from '@tonappchain/sdk';
-	import { Network } from '@tonappchain/sdk';
+	import {
+		TacSdk,
+		OperationTracker,
+		StageName,
+		SenderFactory,
+	} from "@tonappchain/sdk";
+	import { Network } from "@tonappchain/sdk";
 
 	import {
 		PUBLIC_JETTON_TOKEN_ADDRESS,
@@ -31,7 +36,6 @@
 	// store.js
 
 	let tonBalance = 0;
-
 
 	/**
 	 * @type {string | undefined}

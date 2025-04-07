@@ -17,6 +17,7 @@ export async function fetchJettonBalance( tacSdk:any,userTonWalletAddress:string
       const denominator = BigInt(10) ** BigInt(tokensJson[0].decimals);
       // Perform division with BigInt and convert to a human-readable number
       const balance = Number(balanceBigInt) / Number(denominator);
+      console.log('jetton balance : ', balance)
       return balance
 
     } catch (error) {
